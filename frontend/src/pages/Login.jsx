@@ -23,8 +23,12 @@ const Login = () => {
       });
   
       console.log('Login successful:', response.data);
-      // Save userId to localStorage
-      localStorage.setItem("userId", response.data.userId);
+     // Store user data in localStorage
+    localStorage.setItem("userId", response.data.userId);
+    localStorage.setItem("userData", JSON.stringify({
+      username: response.data.username,
+      email: response.data.email,
+    }));
   
       if (response.data.isAdmin) {
         navigate('/admin-main'); // Navigate to AdminDashboard.jsx for admin

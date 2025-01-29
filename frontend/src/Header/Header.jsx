@@ -1,34 +1,53 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';  // Import useNavigate for navigation
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faBell } from '@fortawesome/free-solid-svg-icons';
-import logo from '../logo.png';
-import './Header.css';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faUserCircle, faBell, faSignOutAlt
+} from "@fortawesome/free-solid-svg-icons";
+import logo from "../logo.png";
+import "./Header.css";
 
 const Header = () => {
-  const navigate = useNavigate();  // Use navigate for navigation
+  const navigate = useNavigate();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [notifications, setNotifications] = useState(3); // Example count
 
   const handleLogout = () => {
-    // Clear session or authentication data
-    localStorage.removeItem('userToken'); // Adjust depending on how you're managing user session
-
-    // Redirect to login page
-    navigate('/login');  // Use navigate to redirect to the login page
+    localStorage.removeItem("userToken");
+    navigate("/login");
   };
 
   return (
     <header className="App-header">
       <img src={logo} className="App-logo" alt="logo" />
+
       <div className="Header-right">
-        <FontAwesomeIcon icon={faUser} className="Icon" title="Profile" />
-        <FontAwesomeIcon icon={faBell} className="Icon" title="Notifications" />
-        <Link to="/login" className="Register-btn">
-          Register
-        </Link>
-        <button className="Logout-btn" onClick={handleLogout}>
-          Logout
+        {/* Profile Icon */}
+        <FontAwesomeIcon icon={faUserCircle} className="Icon" title="Profile" />
+
+        {/* Notification Icon with Badge */}
+        <div className="Notification-container">
+          <FontAwesomeIcon icon={faBell} className="Icon" title="Notifications" />
+          {notifications > 0 && <span className="Notification-badge">{notifications}</span>}
+        </div>
+
+        {/* Register Button */}
+        <Link to="/login" className="Register-btn">Register</Link>
+
+        {/* Logout Button */}
+        <button className="Logout-btn" onClick={() => setShowConfirm(true)}>
+          <FontAwesomeIcon icon={faSignOutAlt} className="Logout-icon" /> Logout
         </button>
       </div>
+
+      {/* Logout Confirmation Popup */}
+      {showConfirm && (
+        <div className="Logout-popup">
+          <p>Are you sure you want to logout?</p>
+          <button className="Confirm-btn" onClick={handleLogout}>Yes</button>
+          <button className="Cancel-btn" onClick={() => setShowConfirm(false)}>Cancel</button>
+        </div>
+      )}
     </header>
   );
 };

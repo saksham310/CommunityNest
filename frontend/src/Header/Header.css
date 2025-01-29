@@ -1,93 +1,133 @@
-/* Common styles for the entire app */
-.App {
-    text-align: center;
-  }
-  
-  .App-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: black;
-  
-    padding: 20px;
-    color: white;
-    z-index: 2;
-    position: fixed; /* Fix the header at the top */
-    top: 0; /* Make sure it's at the top of the screen */
-    left: 0;
-    width: 97.5%;
-  
-  }
-  
-  .App-logo {
-    height: 55px;
-  }
-  
-  .Header-right {
-    display: flex;
-    gap: 20px;
-  }
-  
-  .Icon {
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-  }
-  
-  /* Register Button */
-  .Register-btn {
-    padding: 8px 20px;
-    background-color: white;
-    color: #333;
-    border: 2px solid #333;
-    border-radius: 25px;
-    text-decoration: none;
-    font-weight: bold;
-    margin-left: 15px;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  
-  .Register-btn:hover {
-    background-color: #333;
-    color: white;
-  }
-  
-  /* App Body Layout */
-  .App-body {
-    display: flex;
-    height: 100vh;
-  }
-  
-  .Main-content {
-    flex: 1;
-    padding: 20px;
-    background-color: #eaeaea;
-    text-align: left;
-  }
-  
-  /* Logout Button */
-  .Logout-btn {
-    
-    padding: 8px 20px;
-    background-color: white;
-    color: #333;
-    border: 2px solid #333;
-    border-radius: 25px;
-    text-decoration: none;
-    font-weight: bold;
-    margin-left: 15px;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  
-  .Logout-btn:hover {
-    background-color: #333;
-    color: white;
-  }
-  
-  .Logout-btn:active {
-    color: #060606;  /* Even darker red when clicked */
-    transform: scale(0.98);  /* Shrink effect on click */
-  }
-  
+/* Header Container */
+.App-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #222;
+  padding: 15px 30px;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Logo */
+.App-logo {
+  height: 55px;
+}
+
+/* Right-side elements */
+.Header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Icons */
+.Icon {
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.Icon:hover {
+  color: #ffcc00;
+}
+
+/* Notification Icon with Badge */
+.Notification-container {
+  position: relative;
+}
+
+.Notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 3px 7px;
+  border-radius: 50%;
+}
+
+/* Register Button */
+.Register-btn {
+  padding: 8px 20px;
+  background-color: white;
+  color: #333;
+  border: 2px solid #333;
+  border-radius: 25px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.Register-btn:hover {
+  background-color: #333;
+  color: white;
+}
+
+/* Logout Button */
+.Logout-btn {
+  display: flex;
+  align-items: center;
+  padding: 8px 20px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.Logout-btn:hover {
+  background: darkred;
+}
+
+.Logout-icon {
+  margin-right: 8px;
+}
+
+/* Logout Confirmation Popup */
+.Logout-popup {
+  position: absolute;
+  top: 60px;
+  right: 30px;
+  background: white;
+  padding: 15px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.Confirm-btn {
+  background: red;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.Cancel-btn {
+  background: #333;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.Confirm-btn:hover {
+  background: darkred;
+}
+
+.Cancel-btn:hover {
+  background: black;
+}

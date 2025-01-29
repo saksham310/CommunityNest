@@ -66,6 +66,7 @@
   color: #495057;
   transition: transform 0.2s ease, box-shadow 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative; /* Make sure the three-dot icon is positioned relative to this card */
 }
 
 .Department-card:hover {
@@ -75,6 +76,27 @@
 
 .Department-card:active {
   transform: translateY(2px); /* Visual feedback on click */
+}
+
+/* Three-Dot Icon Styling */
+.Three-dot-icon {
+  position: absolute;
+  top: 10px; /* Slightly down from the top edge */
+  right: 10px; /* 10px from the right edge */
+  background-color: #007bff; /* Blue background for better visibility */
+  color: white;
+  border-radius: 50%; /* Circle shape */
+  padding: 8px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.Three-dot-icon:hover {
+  background-color: #0056b3; /* Darker blue on hover */
 }
 
 /* Modal Styling */
@@ -132,4 +154,76 @@
 .Add-department-input:focus {
   border-color: #007bff;
   outline: none;
+}
+
+/* Dropdown Menu */
+.Dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 40px; /* Slightly below the card header */
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 150px;
+  display: none;
+  flex-direction: column;
+  padding: 10px 0;
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+.Department-card:hover .Dropdown-menu {
+  display: flex;
+}
+
+/* Dropdown Option Styling */
+.Dropdown-menu button {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  color: #495057;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.Dropdown-menu button:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.Dropdown-menu button:active {
+  background-color: #0056b3;
+}
+
+/* Rename Department Modal */
+.Rename-department-input {
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 1rem;
+  margin-bottom: 15px;
+}
+
+.Rename-department-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.Rename-department-button:hover {
+  background-color: #0056b3;
+}
+
+.Rename-department-button:active {
+  transform: translateY(2px);
 }

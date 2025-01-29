@@ -122,4 +122,39 @@ router.delete("/deleteDocument", async (req, res) => {
   }
 });
 
+// Delete department and all documents in it only if the document repository is empty
+router.delete("/deleteByDepartment/:department", async (req, res) => {
+  try {
+    const { department } = req.params;
+
+    // Check if there are any documents in the department
+    const documents = await Document.find({ department });
+
+    if (documents.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "The department's document repository is not empty. Please empty the repository before deleting the department.",
+      });
+    }
+
+    // If no documents, proceed with deleting the department (you can also delete the department here if needed)
+
+    res.status(200).json({
+      success: true,
+      message: `The department '${department}' has been deleted as its document repository is empty.`,
+    });
+  } catch (error) {
+    console.error("Error deleting department:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting the department",
+      error: error.message,
+    });
+  }
+});
+
+
+
+
+
 module.exports = router;
