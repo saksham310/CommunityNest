@@ -1,14 +1,15 @@
-import React from 'react';
-import { Link } from 'react-router-dom';  // Import Link from react-router-dom
-import './AdminSidebar.css';
+import React from "react";
+import { NavLink } from "react-router-dom";
+import { FiGrid, FiUsers, FiBriefcase, FiCalendar } from "react-icons/fi"; // Importing React Icons
+import "./AdminSidebar.css";
 
 const Sidebar = () => {
   const menuItems = [
-    { name: 'Dashboard', icon: '📊', path: '/admin-dashboard' },
-    { name: 'Members', icon: '👥', path: '/members' },  // Ensure path is correct
-    { name: 'Departments', icon: '🏢', path: '/departments' },
-    { name: 'Events', icon: '🎉', path: '/events' },
-    { name: 'Meetings', icon: '📅', path: '/meetings' },
+    { name: "Dashboard", icon: <FiGrid />, path: "/admin-dashboard" },
+    { name: "Members", icon: <FiUsers />, path: "/members" },
+    { name: "Departments", icon: <FiBriefcase />, path: "/departments" },
+    { name: "Events", icon: <FiCalendar />, path: "/events" },
+    { name: "Meetings", icon: <FiCalendar />, path: "/meetings" },
   ];
 
   return (
@@ -17,10 +18,13 @@ const Sidebar = () => {
       <ul className="Sidebar-menu">
         {menuItems.map((item) => (
           <li key={item.name} className="Sidebar-item">
-            <Link to={item.path} className="Sidebar-link">  {/* Link here */}
+            <NavLink
+              to={item.path}
+              className={({ isActive }) => `Sidebar-link ${isActive ? "active" : ""}`}
+            >
               <span className="Sidebar-icon">{item.icon}</span>
               <span className="Sidebar-text">{item.name}</span>
-            </Link>
+            </NavLink>
           </li>
         ))}
       </ul>

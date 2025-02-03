@@ -1,109 +1,99 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Document = require("../models/Document");
+const Department = require("../models/Department"); // Assuming you have this model
+const User = require("../models/User"); // Assuming you have a User model
+
 
 // Create a new document
 router.post("/createDocument", async (req, res) => {
-    try {
-      const { title, content, userId, department } = req.body;
-  
-      // Validate the incoming data
-      if (!title || !content || !userId || !department) {
-        return res.status(400).json({
-          success: false,
-          message: "All fields (title, content, userId, department) are required",
-        });
-      }
-  
-      const newDocument = new Document({
-        title,
-        content,
-        userId,
-        department, // Include department
-      });
-  
-      await newDocument.save();
-      res.status(201).json({
-        success: true,
-        message: "Document created!",
-        newDocument,
-      });
-    } catch (error) {
-      console.error("Error creating document:", error); // Log the error for better debugging
-      res.status(500).json({
+  try {
+    const { title, content, department, userId } = req.body;
+
+    if (!title || !content || !department || !userId) {
+      return res.status(400).json({
         success: false,
-        message: "Error creating document",
-        error: error.message, // Send the error message for better clarity
+        message: "All fields (title, content, department, userId) are required",
       });
     }
-  });
-  
 
-  // get documents by department
-  router.get("/getDocumentsByDepartment/:department", async (req, res) => {
-    try {
-      const { department } = req.params;
-  
-      const documents = await Document.find({ department });
-      res.status(200).json(documents);
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Error fetching documents", error });
+    // Ensure the department exists
+    const departmentData = await Department.findById(department).exec();
+    if (!departmentData) {
+      return res.status(404).json({
+        success: false,
+        message: "Department not found",
+      });
     }
-  });
-  
 
-// Get all documents
-router.get("/getDocuments", async (req, res) => {
-  try {
-    const documents = await Document.find();
-    res.status(200).json(documents);
+    // Ensure the user exists
+    const user = await User.findById(userId).exec();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Create and save the new document
+    const newDocument = new Document({
+      title,
+      content,
+      userId,
+      department: departmentData._id, // Store department ID
+    });
+
+    await newDocument.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Document created successfully!",
+      newDocument,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching documents", error });
+    console.error("Error creating document:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating document",
+      error: error.message,
+    });
   }
 });
 
-// Edit a document
-router.put("/editDocument", async (req, res) => {
+
+// Get documents by department and user
+router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req, res) => {
   try {
-    const { id, title, content } = req.body;
-    console.log("Received update request for document ID:", id); // Log the incoming ID
+    const { departmentId, userId } = req.params;
 
-    // Find the document by ID and update
-    const updatedDocument = await Document.findByIdAndUpdate(
-      id,
-      { title, content },
-      { new: true } // Return the updated document
-    );
-
-    if (!updatedDocument) {
-      console.log("Document not found with the ID:", id); // Log if document is not found
-      return res.status(404).json({ success: false, message: "Document not found" });
+    if (!mongoose.Types.ObjectId.isValid(departmentId) || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid department or user ID" });
     }
 
-    console.log("Updated document:", updatedDocument); // Log the updated document
-    res.status(200).json({ success: true, message: "Document updated!", updatedDocument });
+    // Fetch documents for the given department and user
+    const documents = await Document.find({
+      department: departmentId,  // Ensure this is the correct field name
+      userId: userId,            // Ensure this is the correct field name
+    })
+    .populate("department", "name")  // Populate department name if 'department' is correctly set as ref
+    .exec();
+
+    if (documents.length === 0) {
+      return res.status(200).json({ success: true, message: "Repository empty", documents: [] });
+    }
+
+    res.status(200).json({ success: true, documents });
   } catch (error) {
-    console.error("Error updating document:", error); // Log any error during the update
-    res.status(500).json({ success: false, message: "Error updating document", error });
+    console.error("Error fetching documents:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching documents",
+      error: error.message,
+    });
   }
 });
 
-// Get document by ID
-router.get("/getDocumentById/:id", async (req, res) => {
-  try {
-    const { id } = req.params; // Get document ID from the URL
-
-    const document = await Document.findById(id);
-
-    if (!document) {
-      return res.status(404).json({ success: false, message: "Document not found" });
-    }
-
-    res.status(200).json(document); // Return the found document
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching document", error });
-  }
-});
 
 // Delete a document
 router.delete("/deleteDocument", async (req, res) => {
@@ -123,12 +113,12 @@ router.delete("/deleteDocument", async (req, res) => {
 });
 
 // Delete department and all documents in it only if the document repository is empty
-router.delete("/deleteByDepartment/:department", async (req, res) => {
+router.delete("/deleteByDepartment/:departmentName", async (req, res) => {
   try {
-    const { department } = req.params;
+    const { departmentName } = req.params;
 
-    // Check if there are any documents in the department
-    const documents = await Document.find({ department });
+    // Check if there are any documents in the department by department name
+    const documents = await Document.find({ department: departmentName });
 
     if (documents.length > 0) {
       return res.status(400).json({
@@ -137,11 +127,12 @@ router.delete("/deleteByDepartment/:department", async (req, res) => {
       });
     }
 
-    // If no documents, proceed with deleting the department (you can also delete the department here if needed)
+    // Remove department from Department collection
+    await Department.findOneAndDelete({ name: departmentName });
 
     res.status(200).json({
       success: true,
-      message: `The department '${department}' has been deleted as its document repository is empty.`,
+      message: `The department '${departmentName}' has been deleted as its document repository is empty.`,
     });
   } catch (error) {
     console.error("Error deleting department:", error);
@@ -153,8 +144,5 @@ router.delete("/deleteByDepartment/:department", async (req, res) => {
   }
 });
 
-
-
-
-
 module.exports = router;
+

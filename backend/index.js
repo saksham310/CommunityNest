@@ -4,6 +4,10 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const documentRoutes = require("./routes/documents");
+const departmentRoutes = require("./routes/department"); // Import department routes
+
+
+
 
 dotenv.config();
 
@@ -27,9 +31,9 @@ app.use("/api/auth", authRoutes);
 // Routes
 app.use("/api/document", documentRoutes); // Prefix routes with /api
 
+app.use("/api/department", departmentRoutes); // Add this line for department routes
+
 
 // Start server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
