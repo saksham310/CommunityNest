@@ -7,10 +7,6 @@ import "./DocumentRepository.css";
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom"; // Import useNavigate at the top
 
-
-
-
-
 const DocumentRepositoryPage = () => {
   const { department } = useParams();
   const [documents, setDocuments] = useState([]);
@@ -106,9 +102,9 @@ const DocumentRepositoryPage = () => {
         </Link>
 
         {/* Display message if no documents are available */}
-        {documents.length === 0 ? (
+        {/* {documents.length === 0 ? (
           <p>No documents available for this department.</p>
-        ) : (
+        ) : ( */}
           <div className="document-cards">
             {documents.map((doc) => (
               <div key={doc._id} className="document-card">
@@ -142,7 +138,7 @@ const DocumentRepositoryPage = () => {
               </div>
             ))}
           </div>
-        )}
+      
       </div>
 
     {/* Modal component for viewing document */}

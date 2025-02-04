@@ -8,14 +8,22 @@
     padding-top: 80px;
   }
   /* Centering messages */
-.error-message, .document-repository-content p {
+.error-message {
   text-align: center;
   font-size: 16px;
   font-weight: regular;
   margin-top: 20px;
   padding-left: 155px;
+  
 }
-
+.p{
+  text-align: center;
+  font-size: 16px;
+  font-weight: regular;
+  margin-top: 20px;
+  padding-left: 155px;
+  
+}
 /* No documents message */
 
 

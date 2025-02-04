@@ -2,30 +2,29 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import JoditEditor from "jodit-react";
-import Sidebar from "../Sidebar/sidebar.jsx"; // Import your Sidebar component
+import Sidebar from "../Sidebar/sidebar.jsx";
 import "./DocumentRepository.css";
 
 const EditorPage = () => {
-  const { id, department } = useParams(); // Get document ID and department from the URL
+  const { id, department } = useParams();
   const [documentTitle, setDocumentTitle] = useState("");
   const [editorContent, setEditorContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false); // For handling loading state
-  const [error, setError] = useState(""); // For handling error messages
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const backendUrl = "http://localhost:5001/api/document"; // Update this to match your backend URL
+  const backendUrl = "http://localhost:5001/api/document";
 
   useEffect(() => {
     if (id) {
-      // If editing, fetch the document by ID
       setLoading(true);
-      setError(""); // Reset any previous error messages
+      setError("");
       axios
         .get(`${backendUrl}/getDocumentById/${id}`)
         .then((res) => {
-          setDocumentTitle(res.data.title);
-          setEditorContent(res.data.content);
+          const doc = res.data.document;
+          setDocumentTitle(doc.title);
+          setEditorContent(doc.content);
           setIsEditing(true);
         })
         .catch((err) => {
@@ -52,13 +51,11 @@ const EditorPage = () => {
       content: editorContent,
       userId: localStorage.getItem("userId"),
       department,
-      ...(isEditing && { id }), // Add ID to the payload only for editing
+      ...(isEditing && { id }),
     };
 
-    console.log("Payload being sent:", payload); // Debugging log
-
-    setLoading(true); // Set loading state while saving document
-    setError(""); // Reset any previous error messages
+    setLoading(true);
+    setError("");
 
     axios({
       method,
@@ -66,20 +63,17 @@ const EditorPage = () => {
       data: payload,
     })
       .then((res) => {
-        const data = res.data;
-        alert(data.message);
-        if (data.success) {
-          alert(data.message);
+        if (res.data.success) {
+          alert(res.data.message);
           navigate(`/department/${department}/documents`);
-       }
-       
+        }
       })
       .catch((err) => {
         console.error("Error saving document:", err);
         setError("An error occurred while saving the document.");
       })
       .finally(() => {
-        setLoading(false); // Reset loading state after saving
+        setLoading(false);
       });
   };
 
@@ -88,10 +82,9 @@ const EditorPage = () => {
       <Sidebar />
       <div className="document-repository-content">
         <h2>{isEditing ? "Edit Document" : "Create New Document"}</h2>
-        
-        {/* Display error if there is one */}
+
         {error && <div className="error-message">{error}</div>}
-        
+
         <input
           type="text"
           className="title-input"
@@ -99,21 +92,21 @@ const EditorPage = () => {
           value={documentTitle}
           onChange={(e) => setDocumentTitle(e.target.value)}
         />
-        
+
         <JoditEditor
           value={editorContent}
           onChange={(newContent) => setEditorContent(newContent)}
           config={{ readonly: false, height: 400 }}
         />
-        
+
         <button 
           className="save-btn" 
           onClick={saveDocument} 
-          disabled={loading} // Disable button when loading
+          disabled={loading}
         >
           {loading ? "Saving..." : isEditing ? "Save Changes" : "Create Document"}
         </button>
-        
+
         <button
           className="cancel-btn"
           onClick={() => navigate(`/department/${department}/documents`)}
