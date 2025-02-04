@@ -5,6 +5,11 @@ import Sidebar from "../Sidebar/sidebar.jsx";
 import Modal from "./Modal.jsx";
 import "./DocumentRepository.css";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Import useNavigate at the top
+
+
+
+
 
 const DocumentRepositoryPage = () => {
   const { department } = useParams();
@@ -13,6 +18,7 @@ const DocumentRepositoryPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const backendUrl = "http://localhost:5001/api/document";
+  const navigate = useNavigate(); // Add this inside your component
 
   // Get userId from localStorage
   const userId = localStorage.getItem("userId");
@@ -20,8 +26,10 @@ const DocumentRepositoryPage = () => {
   useEffect(() => {
     if (!userId) {
       setErrorMessage("User is not logged in.");
+      navigate("/login"); // Redirect to login page if not logged in
       return;
     }
+  
   
     axios
       .get(`${backendUrl}/getDocumentsByDepartmentAndUser/${department}/${userId}`)
@@ -65,21 +73,22 @@ const DocumentRepositoryPage = () => {
     }
   };
 
-  // Handle view document logic with modal
   const viewDocument = (id) => {
     console.log("Fetching document with ID:", id);
     axios
       .get(`${backendUrl}/getDocumentById/${id}`)
       .then((res) => {
         console.log("Document fetched:", res.data);
-        setSelectedDocument(res.data);
-        setIsModalOpen(true); // Open modal with document details
+        setSelectedDocument(res.data); // Store the fetched document
+        setIsModalOpen(true); // Open modal
       })
       .catch((err) => {
         console.error("Error fetching document details:", err);
         alert("Failed to load document.");
       });
   };
+  
+  
 
   return (
     <div className="document-repository-page">
@@ -109,12 +118,16 @@ const DocumentRepositoryPage = () => {
                 </div>
 
                 <div className="button-container">
-                  <button
+                  {/* <button
                     className="view-btn"
                     onClick={() => viewDocument(doc._id)}
                   >
                     View
-                  </button>
+                  </button> */}
+                  <Link to={`/department/${department}/documents/view/${doc._id}`} className="view-btn">
+                  View
+                  </Link>
+
                   <Link to={`/department/${department}/documents/edit/${doc._id}`} className="edit-btn">
                     Edit
                   </Link>
@@ -132,13 +145,11 @@ const DocumentRepositoryPage = () => {
         )}
       </div>
 
-      {/* Modal component for viewing document */}
-      {isModalOpen && selectedDocument && (
-        <Modal
-          document={selectedDocument}
-          closeModal={() => setIsModalOpen(false)}
-        />
-      )}
+    {/* Modal component for viewing document */}
+    {isModalOpen && selectedDocument && (
+      <Modal document={selectedDocument} closeModal={() => setIsModalOpen(false)} />
+    )}
+
     </div>
   );
 };

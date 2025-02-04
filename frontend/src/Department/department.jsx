@@ -5,6 +5,7 @@ import "./department.css";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import dotsIcon from "../dots.png"; // Ensure the correct path
 
+
 const Department = () => {
   const [departments, setDepartments] = useState([]);
   const [newDepartment, setNewDepartment] = useState("");

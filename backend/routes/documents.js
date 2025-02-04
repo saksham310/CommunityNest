@@ -144,5 +144,108 @@ router.delete("/deleteByDepartment/:departmentName", async (req, res) => {
   }
 });
 
+// Edit an existing document
+router.put("/editDocument", async (req, res) => {
+  try {
+    const { id, title, content, department, userId } = req.body;
+
+    // Validate input
+    if (!title || !content || !department || !userId || !id) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields (id, title, content, department, userId) are required",
+      });
+    }
+
+    // Ensure the department exists
+    const departmentData = await Department.findById(department).exec();
+    if (!departmentData) {
+      return res.status(404).json({
+        success: false,
+        message: "Department not found",
+      });
+    }
+
+    // Ensure the user exists
+    const user = await User.findById(userId).exec();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Find the document by ID
+    const document = await Document.findById(id);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
+    }
+
+    // Update document details
+    document.title = title;
+    document.content = content;
+    document.department = departmentData._id; // Store department ID
+    document.userId = userId;
+
+    // Save updated document
+    await document.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Document updated successfully!",
+      document,
+    });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating document",
+      error: error.message,
+    });
+  }
+});
+
+// Get a document by ID
+router.get("/getDocumentById/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate the document ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid document ID",
+      });
+    }
+
+    // Find the document by ID
+    const document = await Document.findById(id)
+      .populate("department", "name") // If needed, populate department name
+      .exec();
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      document,
+    });
+  } catch (error) {
+    console.error("Error fetching document:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching document",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;
 

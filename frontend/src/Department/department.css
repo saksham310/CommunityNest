@@ -56,12 +56,15 @@ button:hover {
 }
 
 .department-name {
+  cursor: pointer;
   font-size: 18px;
   font-weight: bold;
   text-align: center; /* Ensures the text is centered */
   width: 100%; /* Ensures the text takes up the full width of the card */
 }
-
+.department-name:hover {
+  color: #007bff; /* Change to your preferred color */
+}
 /* Dots Icon */
 .dots-icon {
   position: absolute;

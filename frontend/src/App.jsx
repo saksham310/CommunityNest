@@ -64,6 +64,7 @@ function App() {
         <Route path="/department/:department/documents/edit/:id" element={<EditorPage />} />
         <Route path="/department/:department/documents/view/:id" element={<Modal />} />
 
+
         {/* <Route path="/documents/edit/:id" element={<EditorPage />} /> */}
 
 
