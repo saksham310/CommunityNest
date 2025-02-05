@@ -5,6 +5,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const documentRoutes = require("./routes/documents");
 const departmentRoutes = require("./routes/department"); // Import department routes
+const files = require("./routes/files"); // Import files routes
 
 
 
@@ -33,6 +34,7 @@ app.use("/api/document", documentRoutes); // Prefix routes with /api
 
 app.use("/api/department", departmentRoutes); // Add this line for department routes
 
+app.use("/api/file", files);
 
 // Start server
 const PORT = process.env.PORT || 5001;
