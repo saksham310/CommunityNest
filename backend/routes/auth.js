@@ -5,6 +5,9 @@ const nodemailer = require("nodemailer"); // To send emails
 const router = express.Router();
 
 
+const { google } = require("googleapis");
+require("dotenv").config();
+
 
 // User model
 const User = require("../models/User");
@@ -142,6 +145,8 @@ router.post('/reset-password', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
+
+
 
 
 module.exports = router;

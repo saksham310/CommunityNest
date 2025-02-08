@@ -34,7 +34,9 @@ app.use("/api/document", documentRoutes); // Prefix routes with /api
 
 app.use("/api/department", departmentRoutes); // Add this line for department routes
 
-app.use("/api/file", files);
+app.use("/api/file", files);// Add this line for files routes
+
+
 
 // Start server
 const PORT = process.env.PORT || 5001;

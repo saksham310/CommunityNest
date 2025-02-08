@@ -20,10 +20,9 @@ const DocumentRepositoryPage = () => {
   const [selectedFile, setSelectedFile] = useState(null); // State for file
   const [, setIsUploadModalOpen] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-   const [fileContent, setFileContent] = useState(null); // New state for file content
+  const [fileContent, setFileContent] = useState(null); // New state for file content
   // Get userId from localStorage
   const userId = localStorage.getItem("userId");
-
 
   useEffect(() => {
     if (!userId) {
@@ -54,30 +53,31 @@ const DocumentRepositoryPage = () => {
         setDocuments([]); // Clear state on error
       });
 
-    // Fetch uploaded files by department and user
-    axios
-      .get(
-        `${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`
-      )
-      .then((res) => {
-        if (res.data.files.length === 0) {
-          console.log("No files uploaded yet.");
-          setFiles([]);
-        } else {
-          setFiles(res.data.files);
-        }
-      })
-      .catch(() => {
-        console.error("Error fetching files.");
-        setFiles([]);
-      });
+// Fetch uploaded files by department and user
+axios
+  .get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`)
+  .then((res) => {
+    console.log("Fetched files:", res.data.files); // Debugging line
+    if (res.data.files.length === 0) {
+      console.log("No files uploaded yet.");
+      setFiles([]);
+    } else {
+      setFiles(res.data.files);
+    }
+  })
+  .catch(() => {
+    console.error("Error fetching files.");
+    setFiles([]);
+  });
+    
   }, [department, userId]);
 
+  
   //delete document
   const deleteDocument = (id) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       axios
-      .delete(`${fileBackendUrl}/deleteFile/${id}`)
+        .delete(`${fileBackendUrl}/deleteFile/${id}`)
         .then((res) => {
           const data = res.data;
           if (data.success) {
@@ -106,7 +106,9 @@ const DocumentRepositoryPage = () => {
             alert(res.data.message);
             // Refresh file list after deletion
             axios
-              .get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`)
+              .get(
+                `${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`
+              )
               .then((res) => {
                 setFiles(res.data.files); // Update the state with new file list
               })
@@ -123,64 +125,76 @@ const DocumentRepositoryPage = () => {
         });
     }
   };
-  
-   // Handle viewing the file in the modal
-   const handleViewClick = (file) => {
-    setFileContent({
-      filename: file.filename,
-      fileType: file.fileType,
-      filePath: file.filePath,
-    });
-    setIsModalOpen(true);
+
+  // Handle viewing the file in the modal
+  //  const handleViewClick = (file) => {
+  //   setFileContent({
+  //     filename: file.filename,
+  //     fileType: file.fileType,
+  //     filePath: file.filePath,
+  //   });
+  //   setIsModalOpen(true);
+  // };
+  const handleViewClick = (file) => {
+    if (!file || !file._id) {
+      console.error("Invalid file object:", file);
+      return;
+    }
+    const pdfUrl = `http://localhost:5001/api/file/view/${file._id}`;
+    console.log("Opening file:", pdfUrl);
+    window.open(pdfUrl, "_blank");
   };
-
-
+  
+  
+  
+  
   // Handle file selection
 
   // Handle file upload
-const uploadFile = async () => {
-  if (!selectedFile) {
-    alert("Please select a file first.");
-    return;
-  }
+  const uploadFile = async () => {
+    if (!selectedFile) {
+      alert("Please select a file first.");
+      return;
+    }
 
-  const formData = new FormData();
-  formData.append("file", selectedFile);
-  formData.append("filename", selectedFile.name); // Ensure filename is included
-  formData.append("fileType", selectedFile.type); // Ensure fileType is included
-  formData.append("department", department); // Ensure department is included
-  formData.append("userId", userId); // Ensure userId is included
+    const allowedExtensions = ["doc", "docx", "pdf"];
+    const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
 
-  // Debugging: Log what is being sent
-  for (let pair of formData.entries()) {
-    console.log(pair[0], pair[1]);
-  }
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert("Only .doc, .docx, and .pdf files are allowed.");
+      return;
+    }
 
-  try {
-    const res = await axios.post(
-      "http://localhost:5001/api/file/upload",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("filename", selectedFile.name);
+    formData.append("fileType", selectedFile.type);
+    formData.append("department", department);
+    formData.append("userId", userId);
 
-    alert(res.data.message);
+    try {
+      const res = await axios.post(
+        "http://localhost:5001/api/file/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
-    // Fetch updated file list immediately after upload
-    const fileRes = await axios.get(
-      `${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`
-    );
-    setFiles(fileRes.data.files); // Update the state with new file list
+      alert(res.data.message);
 
-    // Close modal and reset selected file
-    setShowUploadModal(false);
-    setSelectedFile(null);
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    alert("Failed to upload file.");
-  }
-};
+      const fileRes = await axios.get(
+        `${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`
+      );
+      setFiles(fileRes.data.files);
+
+      setShowUploadModal(false);
+      setSelectedFile(null);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Failed to upload file.");
+    }
+  };
 
 
   return (
@@ -258,7 +272,7 @@ const uploadFile = async () => {
                 <p>Uploaded: {new Date(file.uploadedAt).toDateString()}</p>
               </div>
               <div className="button-container">
-                <button
+              <button
                   className="view-btn"
                   onClick={() => handleViewClick(file)}
                 >
@@ -275,80 +289,16 @@ const uploadFile = async () => {
           ))}
         </div>
       </div>
-      {isModalOpen && fileContent && (
-  <div className="modal">
-    <h2>{fileContent.filename}</h2>
-    <div className="file-content">
-      {/* Image handling */}
-      {fileContent.fileType.startsWith("image/") ? (
-        <img
-          src={`http://localhost:5001/${fileContent.filePath}`}
-          alt={fileContent.filename}
-          width="100%"
-          height="auto"
-        />
-        
-      ) : fileContent.fileType === "application/pdf" ? (
-        <embed
-          src={`http://localhost:5001/${fileContent.filePath}`}
-          type="application/pdf"
-          width="100%"
-          height="500px"
-        />
-      ) : fileContent.fileType.startsWith("video/") ? (
-        <video controls width="100%">
-          <source
-            src={`http://localhost:5001/${fileContent.filePath}`}
-            type={fileContent.fileType}
-          />
-          Your browser does not support the video tag.
-        </video>
-      ) : fileContent.fileType === "text/plain" ? (
-        <div>
-          <textarea
-            value={fileContent.content} // Content of the file
-            readOnly
-            style={{ width: "100%", height: "300px" }}
-          />
-        </div>
-      ) : fileContent.fileType === "application/zip" ? (
-        <div>
-          <p>ZIP file: Unable to display contents directly. <br /> You can download it to view the content.</p>
-        </div>
-      ) : fileContent.fileType.startsWith("audio/") ? (
-        <audio controls>
-          <source
-            src={`http://localhost:5001/${fileContent.filePath}`}
-            type={fileContent.fileType}
-          />
-          Your browser does not support the audio tag.
-        </audio>
-      ) : (
-        <p>Unable to display this file type.</p>
-      )}
-    </div>
-    <div className="button-container">
-      <a
-        href={`http://localhost:5001/${fileContent.filePath}`}
-        download
-        className="download-btn"
-      >
-        Download
-      </a>
-    </div>
-    <button onClick={() => setIsModalOpen(false)}>Close</button>
-  </div>
-)}
-
-
 
       {showUploadModal && (
         <div className="modal">
           <h2>Upload File</h2>
           <input
             type="file"
+            accept=".pdf"
             onChange={(e) => setSelectedFile(e.target.files[0])}
           />
+
           {/* <button onClick={() => alert(`File ${selectedFile?.name} selected!`)}>Upload</button> */}
           <button className="upload-btn" onClick={uploadFile}>
             Upload File

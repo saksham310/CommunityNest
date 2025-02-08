@@ -16,6 +16,8 @@ import AdminUserMeetings from './Meetings/meeting.jsx';
 import AdminUserEvents from './Events/event.jsx'; 
 import Modal from './Department/Modal.jsx';
 
+import FileViewer from "./Department/FileViewer.jsx";
+
 
 
 import AdminDashboard from './admin/AdminDashboard/AdminDashboard.jsx';
@@ -63,13 +65,9 @@ function App() {
         <Route path="/department/:department/documents/create" element={<EditorPage />} />
         <Route path="/department/:department/documents/edit/:id" element={<EditorPage />} />
         <Route path="/department/:department/documents/view/:id" element={<Modal />} />
-
+        <Route path="/view/:filename/:fileType" element={<FileViewer />} />  {/* Add this route */}
 
         {/* <Route path="/documents/edit/:id" element={<EditorPage />} /> */}
-
-
-
-
 
         <Route path ="/admin-user-meetings" element={<AdminUserMeetings />} />
         <Route path ="/admin-user-events" element={<AdminUserEvents />} />
