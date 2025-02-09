@@ -5,8 +5,7 @@ const nodemailer = require("nodemailer"); // To send emails
 const router = express.Router();
 
 
-const { google } = require("googleapis");
-require("dotenv").config();
+
 
 
 // User model
