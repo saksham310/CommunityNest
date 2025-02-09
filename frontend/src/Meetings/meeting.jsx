@@ -1,69 +1,97 @@
-import React from 'react';
-import Sidebar from '../Sidebar/sidebar.jsx'; // Import Sidebar
-import './meeting.css'; // Optional: Add specific styles for Meetings
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Sidebar from "../Sidebar/sidebar.jsx"; // Import Sidebar
+import "./meeting.css"; // Add styles specific to Meetings page
 
-const Meeting = ({ onSchedule }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    attendees: "",
-    date: "",
-    startTime: "",
-    endTime: "",
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Convert attendees input to an array
-    const attendeesArray = formData.attendees.split(",").map(email => email.trim());
-
-    const meetingData = {
-      ...formData,
-      attendees: attendeesArray,
-    };
-
-    // Send data to backend
-    const response = await fetch("http://localhost:3000/schedule-meeting", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(meetingData),
+const ScheduleMeetingForm = () => {
+    const [eventData, setEventData] = useState({
+        summary: "",
+        description: "",
+        start: "",
+        end: "",
+        attendees: "",
     });
 
-    const data = await response.json();
-    alert(`Meeting Scheduled! Meet Link: ${data.meetLink}`);
-  };
+    const [authenticated, setAuthenticated] = useState(false);
+    const [meetingLink, setMeetingLink] = useState("");
 
-  return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: "400px", margin: "auto" }}>
-      <h2>Schedule Google Meet</h2>
+    // Check if user is authenticated when the component loads
+    useEffect(() => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("auth") === "success") {
+          setAuthenticated(true);
+          alert("Successfully authenticated with Google!");
+      }
+  }, []);
+  
 
-      <label>Meeting Title:</label>
-      <input type="text" name="title" value={formData.title} onChange={handleChange} required />
+    const handleGoogleAuth = () => {
+        window.location.href = "http://localhost:5001/api/meeting/google";
+    };
 
-      <label>Description:</label>
-      <textarea name="description" value={formData.description} onChange={handleChange} required />
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setEventData({ ...eventData, [name]: value });
+    };
 
-      <label>Attendees (comma-separated emails):</label>
-      <input type="text" name="attendees" value={formData.attendees} onChange={handleChange} required />
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-      <label>Date:</label>
-      <input type="date" name="date" value={formData.date} onChange={handleChange} required />
+        if (!authenticated) {
+            alert("Please sign in with Google before scheduling a meeting.");
+            return;
+        }
 
-      <label>Start Time:</label>
-      <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} required />
+        // Convert comma-separated emails to an array
+        const attendeesList = eventData.attendees.split(",").map(email => email.trim());
 
-      <label>End Time:</label>
-      <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} required />
+        try {
+          const response = await fetch("http://localhost:5001/api/meeting/schedule_meeting", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",  // Allow sending cookies/session
+            body: JSON.stringify({ ...eventData, attendees: attendeesList }),
+        });
+        
 
-      <button type="submit">Schedule Meeting</button>
-    </form>
-  );
+            const result = await response.json();
+            if (response.ok) {
+                setMeetingLink(result.eventLink);
+                alert(`Meeting Scheduled! Link: ${result.eventLink}`);
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            console.error("Error scheduling meeting:", error);
+            alert("Something went wrong. Please try again.");
+        }
+    };
+
+    return (
+        <div className="meeting">
+            <Sidebar />
+            <h2>Schedule a Meeting</h2>
+            
+            {!authenticated ? (
+                <button onClick={handleGoogleAuth}>Sign in with Google</button>
+            ) : (
+                <form onSubmit={handleSubmit}>
+                    <input type="text" name="summary" placeholder="Event Title" onChange={handleChange} required />
+                    <textarea name="description" placeholder="Event Description" onChange={handleChange} required />
+                    <input type="datetime-local" name="start" onChange={handleChange} required />
+                    <input type="datetime-local" name="end" onChange={handleChange} required />
+                    <input type="text" name="attendees" placeholder="Attendees (comma-separated emails)" onChange={handleChange} required />
+                    <button type="submit">Schedule Meeting</button>
+                </form>
+            )}
+
+            {meetingLink && (
+                <div>
+                    <h3>Meeting Scheduled Successfully!</h3>
+                    <p><a href={meetingLink} target="_blank" rel="noopener noreferrer">{meetingLink}</a></p>
+                </div>
+            )}
+        </div>
+    );
 };
 
-export default Meeting;
+export default ScheduleMeetingForm;

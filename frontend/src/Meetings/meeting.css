@@ -1,0 +1,88 @@
+/* Container Styling */
+.meeting {
+    max-width: 450px;
+    margin: 80px auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+    margin-left: 330px;
+    margin-top: 120px;
+    
+  }
+  .meeting form {
+    margin-top: 10px;
+    padding-right: 20px;
+  }
+  
+  /* Form Heading */
+  .meeting h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    padding-top: 10px;
+  }
+  
+  /* Labels */
+  .meeting label {
+    display: block;
+    font-weight: 600;
+    margin: 10px 0 5px;
+    color: #333;
+  }
+  
+  /* Input Fields */
+  .meeting input,
+  .meeting textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border 0.3s ease-in-out;
+  }
+  
+  /* Input Focus Effect */
+  .meeting input:focus,
+  .meeting textarea:focus {
+    border: 1px solid #007bff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+  }
+  
+  /* Textarea */
+  .meeting textarea {
+    resize: none;
+    min-height: 80px;
+  }
+  
+  /* Submit Button */
+  .meeting button {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+  }
+  
+  /* Button Hover Effect */
+  .meeting button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .meeting {
+      width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  
