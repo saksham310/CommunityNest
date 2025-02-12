@@ -3,7 +3,9 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto"); // To generate reset tokens
 const nodemailer = require("nodemailer"); // To send emails
 const router = express.Router();
-
+const Community = require("../models/Community");
+const authenticate = require("./authenticate"); 
+const jwt = require('jsonwebtoken'); // Import jsonwebtoken here
 
 
 
@@ -21,48 +23,128 @@ const transporter = nodemailer.createTransport({
 });
 
 
-// Signup route
+// Signup Route
 router.post("/signup", async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, status } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, password: hashedPassword });
+
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      status,
+      communities: [],
+      managedCommunity: null,
+    });
+
+    // If the user is signing up as a community admin, create a community
+    if (status === "community") {
+      const newCommunity = new Community({ 
+        name: `${username}'s Community`, 
+        admin: newUser._id, 
+        members: [] 
+      });
+      await newCommunity.save();
+      newUser.managedCommunity = newCommunity._id; // Assign the community to the admin
+    }
+
     await newUser.save();
-    res.status(201).json({ message: "User created successfully!" });
+    res.status(201).json({ message: "User created successfully!", user: newUser });
   } catch (err) {
-    res.status(500).json({ message: "Error creating user" });
+    res.status(500).json({ message: "Error creating user", error: err });
   }
 });
 
-// Login route
+// Get user by ID
+router.get("/user/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+// Get user by Email
+router.get("/user/email/:email", async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.params.email }).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+
+router.get("/data", authenticate, async (req, res) => {
+  console.log("User ID from token:", req.userId);  // Debug log
+  try {
+    const user = await User.findById(req.userId).select("status managedCommunity");
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+
+    res.status(200).json({
+      status: user.status,
+      managedCommunity: user.managedCommunity || null,
+    });
+  } catch (error) {
+    console.error("Error:", error);  // Debug log
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+
+
+
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    console.log('Email:', email); // Log the email for debugging
+
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found'); // Log when user is not found
       return res.status(400).json({ message: 'User not found' });
     }
 
+    console.log('User found:', user); // Log user details for debugging
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log('Invalid password'); // Log when password doesn't match
       return res.status(400).json({ message: 'Invalid password' });
     }
 
     const isAdmin = email === 'bristinaprajapati99@gmail.com'; // Check if the email matches admin
 
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
+
+    console.log('Login successful, token:', token); // Log token generation
+
     res.status(200).json({ 
       message: 'Login successful', 
-      userId: user._id,  // Send userId (MongoDB _id)
-      isAdmin 
+      userId: user._id, 
+      isAdmin, 
+      token 
     });
   } catch (err) {
+    console.error('Login error:', err); // Log the error in the backend
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-
 
 
 // Forgot Password route

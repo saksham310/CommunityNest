@@ -110,4 +110,82 @@ router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
     }
 });
 
+// Fetch all scheduled meetings/events from Google Calendar
+router.get('/events', ensureAuthenticated, async (req, res) => {
+    try {
+        const response = await calendar.events.list({
+            calendarId: 'primary',
+            auth: oauth2Client,
+            timeMin: (new Date()).toISOString(), // Fetch only upcoming events
+            maxResults: 50, // Adjust as needed
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        res.json({ events: response.data.items });
+    } catch (error) {
+        console.error('Error fetching events:', error);
+        res.status(500).json({ error: 'Failed to retrieve events', details: error.toString() });
+    }
+});
+
+// Edit a meeting/event
+router.put('/edit_meeting/:eventId', ensureAuthenticated, async (req, res) => {
+    const { eventId } = req.params;
+    const { summary, description, start, end, attendees } = req.body;
+  
+    // Validate input fields
+    if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
+        return res.status(400).json({ error: "All fields are required and attendees should be an array" });
+    }
+
+    try {
+        // Prepare the event data for Google Calendar
+        const event = await calendar.events.update({
+            calendarId: 'primary',
+            eventId,
+            requestBody: {
+                summary,
+                description,
+                start: { 
+                    dateTime: new Date(start).toISOString(), 
+                    timeZone: 'Asia/Kathmandu' 
+                },
+                end: { 
+                    dateTime: new Date(end).toISOString(), 
+                    timeZone: 'Asia/Kathmandu' 
+                },
+                attendees: attendees.map((email) => ({ email })),
+            },
+        });
+
+        // Send the response with the updated event details
+        res.json({ msg: 'Event updated successfully', eventLink: event.data.hangoutLink });
+    } catch (error) {
+        console.error('Error updating event:', error);
+        res.status(500).json({ error: 'Failed to update event', details: error.toString() });
+    }
+});
+ 
+// Delete a meeting/event
+router.delete('/delete_meeting/:eventId', ensureAuthenticated, async (req, res) => {
+    const { eventId } = req.params;
+
+    try {
+        await calendar.events.delete({
+            calendarId: 'primary',
+            eventId: eventId,
+            auth: oauth2Client,
+        });
+
+        res.json({ msg: 'Event deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting event:', error);
+        res.status(500).json({ error: 'Failed to delete event', details: error.toString() });
+    }
+});
+
+
+
+
 module.exports = router;

@@ -10,6 +10,7 @@ const files = require("./routes/files");
 const meetingRoutes = require("./routes/meeting");
 const session = require('express-session');
 const MongoStore = require("connect-mongo");
+const communityRoutes = require("./routes/community");
 
 dotenv.config();
 
@@ -72,7 +73,7 @@ app.use("/api/document", documentRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/file", files);
 app.use("/api/meeting", meetingRoutes);
-
+app.use("/api/community", communityRoutes);
 // Start server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
