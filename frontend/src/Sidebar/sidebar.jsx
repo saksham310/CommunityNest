@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './sidebar.css';
-import { FaHome, FaSitemap, FaUsers, FaCalendarAlt } from 'react-icons/fa';
+import { FaHome, FaSitemap, FaUsers, FaCalendarAlt, FaUserFriends } from 'react-icons/fa'; 
 import logo2 from '../logo2.png'; // Adjusted path to go one level up
 
 const Sidebar = () => (
@@ -18,6 +18,14 @@ const Sidebar = () => (
           <FaHome />
         </div>
         <span className="Sidebar-text">Dashboard</span>
+      </Link>
+
+      {/* Members Link (Added Below Dashboard) */}
+      <Link to="/members" className="Sidebar-item">
+        <div className="Sidebar-icon" style={{ backgroundColor: '#4b7bec' }}>
+          <FaUserFriends />
+        </div>
+        <span className="Sidebar-text">Members</span>
       </Link>
 
       <Link to="/department" className="Sidebar-item">

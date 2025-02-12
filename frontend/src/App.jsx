@@ -23,6 +23,7 @@ import Members from './admin/Admin_Members/Members.jsx';
 import Departments from './admin/Admin_Departments/Department.jsx';
 import Events from './admin/Admin_Events/Event.jsx';
 import Meetings from './admin/Admin_Meetings/Meeting.jsx';
+import MembersPage from "./Member/member.jsx";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState('Departments');
@@ -48,6 +49,8 @@ function App() {
         <Route path="/department/:department/documents/edit/:id" element={<EditorPage />} />
         <Route path="/department/:department/documents/view/:id" element={<Modal />} />
         <Route path="/view/:filename/:fileType" element={<FileViewer />} />
+        
+        <Route path="/members" element={<MembersPage />} />
         
         {/* Meeting Scheduling */}
         <Route path="/meeting" element={<ScheduleMeetingForm />} />

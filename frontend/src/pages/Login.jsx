@@ -4,53 +4,81 @@ import axios from 'axios';
 import './login.css';
 import ReCAPTCHA from 'react-google-recaptcha';
 
-const SITE_KEY ='6LdS7qIqAAAAABLLeQHDUNylcYpE4rNn1bvdgS0i'
+const SITE_KEY = '6LdS7qIqAAAAABLLeQHDUNylcYpE4rNn1bvdgS0i';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // Error state to display feedback
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // To show loading state
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-  
+    setLoading(true); // Show loading indicator during login
+
     try {
       const response = await axios.post('http://localhost:5001/api/auth/login', {
         email,
         password,
       });
-  
+
       console.log('Login successful:', response.data);
-     // Store user data in localStorage
-    localStorage.setItem("userId", response.data.userId);
-    localStorage.setItem("userData", JSON.stringify({
-      username: response.data.username,
-      email: response.data.email,
-    }));
-  
+
+      // Store token and user data in localStorage
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userId', response.data.userId);
+      localStorage.setItem('userData', JSON.stringify({
+        username: response.data.username,
+        email: response.data.email,
+      }));
+
+      // Fetch user data after login
+      await fetchUserData(response.data.token);
+
+      // Navigate to appropriate dashboard based on user role
       if (response.data.isAdmin) {
-        navigate('/admin-main'); // Navigate to AdminDashboard.jsx for admin
+        navigate('/admin-main');
       } else {
-        navigate('/main'); // Navigate to the main page for regular users
+        navigate('/main');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false); // Hide loading indicator after login attempt
     }
   };
-  
+
+  // Fetch user data after login
+  const fetchUserData = async (token) => {
+    if (!token) {
+      console.log('No token found');
+      return;
+    }
+
+    try {
+      const response = await axios.get('http://localhost:5001/api/auth/data', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('User data:', response.data);
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+    }
+  };
+
   // Handle Forgot Password logic
   const handleForgotPassword = () => {
     console.log('Forgot Password clicked');
-    // Navigate to forgot password page
     navigate('/forgot-password');
   };
 
   // For ReCAPTCHA
   const onChange = value => { 
-    console.log(value) // prints the token
-  }
+    console.log(value); // prints the token, but should verify on server-side
+  };
 
   return (
     <div className="Login">
@@ -76,7 +104,6 @@ const Login = () => {
           <ReCAPTCHA sitekey={SITE_KEY} onChange={onChange} />
         </div>
 
-        {/* Forgot Password button */}
         <button
           type="button"
           className="Forgot-password"
@@ -85,8 +112,8 @@ const Login = () => {
           Forgot Password?
         </button>
 
-        <button type="submit" className="Login-btn">
-          Login
+        <button type="submit" className="Login-btn" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
 

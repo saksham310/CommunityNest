@@ -5,7 +5,8 @@
 }
 
 .Signup input,
-.Signup button {
+.Signup button,
+.Signup select {  /* Added select */
   width: 100%;
   padding: 10px;
   margin: 10px 0;
@@ -13,8 +14,16 @@
   box-sizing: border-box; /* Ensures padding and border are included in width */
 }
 
-.Signup input {
+.Signup input, 
+.Signup select {  /* Added select */
   border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+/* Style dropdown */
+.Signup select {
+  background-color: #fff;
+  cursor: pointer;
 }
 
 .Signup button {
@@ -22,6 +31,12 @@
   color: white;
   border: none;
   cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+
+.Signup button:hover {
+  background-color: #45a049;
 }
 
 .Login-link {

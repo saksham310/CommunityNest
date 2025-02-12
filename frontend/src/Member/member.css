@@ -1,0 +1,96 @@
+/* General Page Styling */
+.p-4 {
+    padding: 16px;
+    font-family: "Arial", sans-serif;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+    display: flex;
+  
+}
+
+/* Content Wrapper */
+.content {
+    flex: 1;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-left: 260px; /* To prevent overlap with sidebar */
+}
+
+/* Heading */
+h2 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+    margin-top: 70px;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #3498db;
+    color: white;
+    font-weight: bold;
+}
+
+tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Loader & No Data Message */
+p {
+    text-align: center;
+    font-size: 16px;
+    color: #555;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .Sidebar {
+        width: 100%;
+        position: fixed;
+        height: auto;
+        padding: 10px;
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 10px;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    th,
+    td {
+        padding: 8px;
+    }
+
+    /* Consider collapsing sidebar for mobile screens */
+    .Sidebar {
+        display: none; /* Example for hidden sidebar on small screens */
+    }
+
+    .content {
+        margin-top: 60px; /* Adjust margin for better header spacing */
+    }
+}
