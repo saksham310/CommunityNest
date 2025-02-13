@@ -94,3 +94,8 @@ p {
         margin-top: 60px; /* Adjust margin for better header spacing */
     }
 }
+.remove-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  

@@ -6,4 +6,6 @@ const CommunitySchema = new mongoose.Schema({
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // List of members
 });
 
+
+
 module.exports = mongoose.model("Community", CommunitySchema);

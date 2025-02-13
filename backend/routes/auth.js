@@ -87,7 +87,7 @@ router.get("/user/email/:email", async (req, res) => {
 router.get("/data", authenticate, async (req, res) => {
   console.log("User ID from token:", req.userId);  // Debug log
   try {
-    const user = await User.findById(req.userId).select("status managedCommunity");
+    const user = await User.findById(req.userId).select("status managedCommunity communities");
     
     if (!user) {
       return res.status(404).json({ message: "User not found!" });
@@ -96,6 +96,7 @@ router.get("/data", authenticate, async (req, res) => {
     res.status(200).json({
       status: user.status,
       managedCommunity: user.managedCommunity || null,
+      communities: user.communities || [],  // Ensure it always returns an array
     });
   } catch (error) {
     console.error("Error:", error);  // Debug log
@@ -138,14 +139,14 @@ router.post('/login', async (req, res) => {
       message: 'Login successful', 
       userId: user._id, 
       isAdmin, 
-      token 
+      token,
+      communities: user.communities,
     });
   } catch (err) {
     console.error('Login error:', err); // Log the error in the backend
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 // Forgot Password route
 router.post('/forgot-password', async (req, res) => {

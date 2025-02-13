@@ -19,10 +19,11 @@ const MembersPage = () => {
   useEffect(() => {
     console.log("useEffect triggered. Community ID:", communityId);
     if (communityId) {
-        fetchMembers();
+      fetchMembers(communityId); // Ensure community ID is passed
     }
-}, [communityId]);
- // Runs when communityId updates
+  }, [communityId]);
+
+  // Runs when communityId updates
 
   // Fetch user status to determine if they can add members
   const fetchUserStatus = async () => {
@@ -34,10 +35,12 @@ const MembersPage = () => {
       });
 
       setUserStatus(response.data.status);
-      
+
       // If user is a member, fetch the community ID they belong to
       if (response.data.status === "member") {
-        setCommunityId(response.data.communityId); // Assuming the user data has communityId when status is "member"
+        const firstCommunity = response.data.communities[0];
+        setCommunityId(firstCommunity);
+        fetchMembers(firstCommunity); // Fetch members immediately
       } else if (response.data.status === "community") {
         setCommunityId(response.data.managedCommunity); // If user manages a community, get the community ID
       }
@@ -47,40 +50,30 @@ const MembersPage = () => {
   };
 
   // Fetch members for the current community
-  const fetchMembers = async () => {
+  const fetchMembers = async (communityId) => {
     if (!communityId) {
-      setMessage("Community ID is missing, cannot fetch members.");
       console.error("Community ID is missing.");
+      setMessage("Community ID is missing.");
       return;
     }
-
-    console.log("Fetching members for community:", communityId); // Debugging log
+    console.log("Fetching members for community:", communityId);
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setMessage("No token found. Please log in.");
-        return;
-      }
-
       const response = await axios.get(
         `http://localhost:5001/api/community/${communityId}/members`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
       );
 
-      console.log("Fetched members:", response.data.members); // Debugging log
+      console.log("Fetched members:", response.data.members);
       setMembers(response.data.members);
     } catch (error) {
-      setMessage("Error fetching members. Please try again.");
       console.error("Error fetching members:", error);
+      setMessage("Error fetching members. Please try again.");
     } finally {
       setLoading(false);
     }
-};
-
+  };
 
   // Function to add a new member
   const addMember = async () => {
@@ -88,19 +81,19 @@ const MembersPage = () => {
       setMessage("Please enter a valid email.");
       return;
     }
-
+  
     const token = localStorage.getItem("token");
     if (!token) {
       setMessage("You need to be logged in to add members.");
       return;
     }
-
+  
     if (!communityId) {
       console.error("Community ID is missing, cannot add members.");
       setMessage("Community ID is missing, cannot add members.");
       return;
     }
-
+  
     try {
       setAdding(true);
       const response = await axios.post(
@@ -111,34 +104,37 @@ const MembersPage = () => {
           withCredentials: true,
         }
       );
-
+  
       setMessage(response.data.message);
       setEmail(""); // Clear input field
-      fetchMembers(); // Refresh members list
+  
+      // Pass communityId explicitly
+      fetchMembers(communityId);
     } catch (error) {
       console.error("Add member error:", error.response?.data || error);
-      
-      // Display error message returned from the backend
       setMessage(error.response?.data?.message || "Error adding member.");
     } finally {
       setAdding(false);
     }
   };
-
+  
   const removeMember = async (memberId) => {
     const confirmed = window.confirm("Are you sure you want to remove this member?");
-    
-    if (!confirmed) {
-      return; // Do nothing if the user cancels
+    if (!confirmed) return;
+  
+    if (!communityId) {
+      console.error("Community ID is missing, cannot remove members.");
+      setMessage("Community ID is missing, cannot remove members.");
+      return;
     }
-
+  
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         setMessage("You need to be logged in to remove members.");
         return;
       }
-
+  
       const response = await axios.delete(
         `http://localhost:5001/api/community/${communityId}/remove-member/${memberId}`,
         {
@@ -146,14 +142,17 @@ const MembersPage = () => {
           withCredentials: true,
         }
       );
-
+  
       setMessage(response.data.message);
-      fetchMembers(); // Refresh the members list after removal
+  
+      // Pass communityId explicitly
+      fetchMembers(communityId);
     } catch (error) {
-      setMessage("Error removing member. Please try again.");
       console.error("Error removing member:", error.response?.data || error);
+      setMessage("Error removing member. Please try again.");
     }
   };
+  
 
   return (
     <div className="p-4">
@@ -203,8 +202,11 @@ const MembersPage = () => {
                   <td className="border px-4 py-2">
                     {/* Remove member button */}
                     <button
-                      onClick={() => removeMember(member._id)} // Pass member._id to remove member
-                      className="remove-button"
+                      onClick={() => removeMember(member._id)}
+                      className={`remove-button ${
+                        userStatus !== "community" ? "disabled" : ""
+                      }`}
+                      disabled={userStatus !== "community"}
                     >
                       Remove
                     </button>
