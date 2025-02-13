@@ -13,6 +13,12 @@ const UserSchema = new mongoose.Schema({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Community" }], 
     default: [], 
   },
+  
+   // Track the communities that this user is a part of along with admin userId
+   communityDetails: [{
+    communityId: { type: mongoose.Schema.Types.ObjectId, ref: "Community" },
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  }],
 
   // If the user is an admin, they manage a single community
   managedCommunity: { 

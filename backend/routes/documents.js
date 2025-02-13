@@ -63,23 +63,47 @@ router.post("/createDocument", async (req, res) => {
 });
 
 
-// Get documents by department and user
+// Get documents by department and user (check user status)
 router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req, res) => {
   try {
     const { departmentId, userId } = req.params;
 
+    // Validate the IDs
     if (!mongoose.Types.ObjectId.isValid(departmentId) || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ success: false, message: "Invalid department or user ID" });
     }
 
-    // Fetch documents for the given department and user
-    const documents = await Document.find({
-      department: departmentId,  // Ensure this is the correct field name
-      userId: userId,            // Ensure this is the correct field name
-    })
-    .populate("department", "name")  // Populate department name if 'department' is correctly set as ref
-    .exec();
+    // Find the user to check if they are a community admin or a member
+    const user = await User.findById(userId).exec();
 
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    let documents;
+
+    // If user is a community admin, get documents for their community and department
+    if (user.status === "community") {
+      documents = await Document.find({
+        department: departmentId,
+        userId: userId,  // Only fetch documents related to the community admin
+      })
+        .populate("department", "name")
+        .exec();
+    } else if (user.status === "member") {
+      // If user is a member, fetch documents for the adminId from communityDetails
+      const communityAdminId = user.communityDetails.adminId;
+      documents = await Document.find({
+        department: departmentId,
+        userId: communityAdminId,  // Fetch documents related to the admin's community
+      })
+        .populate("department", "name")
+        .exec();
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid user status" });
+    }
+
+    // Return the documents
     if (documents.length === 0) {
       return res.status(200).json({ success: true, message: "Repository empty", documents: [] });
     }
@@ -94,6 +118,8 @@ router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req,
     });
   }
 });
+
+
 
 
 // Delete a document

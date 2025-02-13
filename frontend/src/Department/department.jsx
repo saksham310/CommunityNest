@@ -32,6 +32,7 @@ const Department = () => {
       alert("You must be logged in to view your departments");
     }
   }, []);
+  
 
   const addDepartment = async () => {
     if (newDepartment.trim()) {

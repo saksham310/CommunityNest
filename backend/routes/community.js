@@ -7,12 +7,13 @@ const router = express.Router();
 
 router.post("/add-member", authenticate, async (req, res) => {
   const { communityId, memberEmail } = req.body;
-  const userId = req.userId;
+  const userId = req.userId; // The admin's ID (the one adding the member)
 
   try {
       const community = await Community.findById(communityId);
       if (!community) return res.status(404).json({ message: "Community not found" });
 
+      // Check if the logged-in user is the admin of the community
       if (String(community.admin) !== String(userId)) {
           return res.status(403).json({ message: "You do not have permission to add members to this community!" });
       }
@@ -26,16 +27,22 @@ router.post("/add-member", authenticate, async (req, res) => {
           return res.status(400).json({ message: "The user must be a member to be added." });
       }
 
-      console.log("Before Adding:", userToAdd.communities);
-
-      // Use `findOneAndUpdate` to ensure proper update
+      // Add the communityId and adminId to the member's `communityDetails` field
       const updatedUser = await User.findOneAndUpdate(
           { email: memberEmail },
-          { $addToSet: { communities: community._id } }, // Ensures unique values
-          { new: true } // Returns updated document
+          { 
+            $addToSet: {
+              communities: community._id, // Add the community ID to the `communities` field
+              communityDetails: {
+                communityId: community._id, 
+                adminId: community.admin // Store the admin's userId
+              }
+            }
+          },
+          { new: true }
       );
 
-      console.log("After Adding:", updatedUser.communities); // Verify update
+      console.log("After Adding:", updatedUser.communities);
 
       if (!community.members.includes(userToAdd._id)) {
           community.members.push(userToAdd._id);
@@ -71,7 +78,7 @@ router.delete("/:communityId/remove-member/:memberId", authenticate, async (req,
     community.members.splice(memberIndex, 1);
     await community.save();
 
-    // ✅ Send a response after successful deletion
+    // Send a response after successful deletion
     res.json({ message: "Member removed successfully", removedMemberId: memberId });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error });

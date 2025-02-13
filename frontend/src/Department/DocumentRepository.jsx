@@ -23,6 +23,7 @@ const DocumentRepositoryPage = () => {
   const [fileContent, setFileContent] = useState(null); // New state for file content
   // Get userId from localStorage
   const userId = localStorage.getItem("userId");
+  const userRole = localStorage.getItem("userRole"); // This assumes 'community' or 'member' is stored
 
   useEffect(() => {
     if (!userId) {
