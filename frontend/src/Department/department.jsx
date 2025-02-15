@@ -33,6 +33,7 @@ const Department = () => {
     }
   }, []);
   
+  
 
   const addDepartment = async () => {
     if (newDepartment.trim()) {

@@ -13,6 +13,12 @@ const Login = () => {
   const [loading, setLoading] = useState(false); // To show loading state
   const navigate = useNavigate();
 
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+
+  const onChange = (value) => {
+    setRecaptchaToken(value);
+  };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -29,10 +35,10 @@ const Login = () => {
       // Store token and user data in localStorage
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('userId', response.data.userId);
-      localStorage.setItem('userData', JSON.stringify({
-        username: response.data.username,
-        email: response.data.email,
-      }));
+      
+      // Store the username and email in localStorage
+      localStorage.setItem('username', response.data.username);
+      localStorage.setItem('email', response.data.email);
 
       // Fetch user data after login
       await fetchUserData(response.data.token);
@@ -48,7 +54,9 @@ const Login = () => {
     } finally {
       setLoading(false); // Hide loading indicator after login attempt
     }
-  };
+};
+
+  
 
   // Fetch user data after login
   const fetchUserData = async (token) => {
@@ -75,10 +83,6 @@ const Login = () => {
     navigate('/forgot-password');
   };
 
-  // For ReCAPTCHA
-  const onChange = value => { 
-    console.log(value); // prints the token, but should verify on server-side
-  };
 
   return (
     <div className="Login">
@@ -101,7 +105,7 @@ const Login = () => {
         {error && <p className="Error">{error}</p>} {/* Display error if present */}
 
         <div className="recaptcha">
-          <ReCAPTCHA sitekey={SITE_KEY} onChange={onChange} />
+        <ReCAPTCHA sitekey={SITE_KEY} onChange={onChange} />
         </div>
 
         <button

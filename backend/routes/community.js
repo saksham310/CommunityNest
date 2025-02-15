@@ -56,6 +56,25 @@ router.post("/add-member", authenticate, async (req, res) => {
   }
 });
 
+router.get("/getCommunityDetails/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch user with community details
+    const user = await User.findById(userId).select("communityDetails");
+
+    if (!user || !user.communityDetails || user.communityDetails.length === 0) {
+      return res.status(404).json({ success: false, message: "Community details not found" });
+    }
+
+    res.status(200).json({ success: true, communityDetails: user.communityDetails });
+  } catch (error) {
+    console.error("Error fetching community details:", error);
+    res.status(500).json({ success: false, message: "Error fetching community details" });
+  }
+});
+
+
 router.delete("/:communityId/remove-member/:memberId", authenticate, async (req, res) => {
   const { communityId, memberId } = req.params;
   const userId = req.userId; // Extract user ID from token

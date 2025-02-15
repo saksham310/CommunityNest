@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faUserCircle, faBell, faSignOutAlt
-} from "@fortawesome/free-solid-svg-icons";
+import { faUserCircle, faBell, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 import logo from "../logo.png";
 import "./Header.css";
 
@@ -12,8 +10,33 @@ const Header = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [notifications, setNotifications] = useState(3); // Example count
 
+  // State for user information
+  const [user, setUser] = useState({
+    username: localStorage.getItem("username") || "Guest",
+    email: localStorage.getItem("email") || "Not Available"
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setUser({
+        username: localStorage.getItem("username") || "Guest",
+        email: localStorage.getItem("email") || "Not Available"
+      });
+    };
+
+    // Listen for storage updates
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("userToken");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
+    setUser({ username: "Guest", email: "Not Available" }); // Reset UI
     navigate("/login");
   };
 
@@ -22,6 +45,12 @@ const Header = () => {
       <img src={logo} className="App-logo" alt="logo" />
 
       <div className="Header-right">
+        {/* Display Username and Email */}
+        <div className="User-info">
+          <span className="Username">{user.username}</span>
+          <span className="Email">{user.email}</span>
+        </div>
+
         {/* Profile Icon */}
         <FontAwesomeIcon icon={faUserCircle} className="Icon" title="Profile" />
 
@@ -32,12 +61,16 @@ const Header = () => {
         </div>
 
         {/* Register Button */}
-        <Link to="/login" className="Register-btn">Register</Link>
+        {!localStorage.getItem("userToken") && (
+          <Link to="/login" className="Register-btn">Register</Link>
+        )}
 
         {/* Logout Button */}
-        <button className="Logout-btn" onClick={() => setShowConfirm(true)}>
-          <FontAwesomeIcon icon={faSignOutAlt} className="Logout-icon" /> Logout
-        </button>
+        {localStorage.getItem("userToken") && (
+          <button className="Logout-btn" onClick={() => setShowConfirm(true)}>
+            <FontAwesomeIcon icon={faSignOutAlt} className="Logout-icon" /> Logout
+          </button>
+        )}
       </div>
 
       {/* Logout Confirmation Popup */}

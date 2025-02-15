@@ -12,6 +12,7 @@
   width: 100%;
   z-index: 100;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
 }
 
 /* Logo */
@@ -24,6 +25,28 @@
   display: flex;
   align-items: center;
   gap: 20px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* User Info Section */
+.User-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 20px;
+  text-align: right;
+}
+
+.Username {
+  font-weight: bold;
+  font-size: 16px;
+  color: white;
+}
+
+.Email {
+  font-size: 14px;
+  color: #cccccc;
 }
 
 /* Icons */

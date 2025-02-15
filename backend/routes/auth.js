@@ -106,13 +106,11 @@ router.get("/data", authenticate, async (req, res) => {
 
 
 
-
-
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    console.log('Email:', email); // Log the email for debugging
+    console.log('Login attempt for Email:', email); // Log email for debugging
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -122,31 +120,38 @@ router.post('/login', async (req, res) => {
 
     console.log('User found:', user); // Log user details for debugging
 
+    // Compare provided password with stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.log('Invalid password'); // Log when password doesn't match
       return res.status(400).json({ message: 'Invalid password' });
     }
 
-    const isAdmin = email === 'bristinaprajapati99@gmail.com'; // Check if the email matches admin
+    // Check if the email belongs to an admin
+    const isAdmin = email === 'bristinaprajapati99@gmail.com'; 
 
-    // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
+    // Generate JWT token (use environment variable for secret key)
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '1h' });
 
-    console.log('Login successful, token:', token); // Log token generation
+    console.log('Login successful, token generated'); // Log token generation success
 
+    // Send response with user details, token, and communities
     res.status(200).json({ 
       message: 'Login successful', 
       userId: user._id, 
       isAdmin, 
       token,
-      communities: user.communities,
+      username: user.username, // Return the username
+      email: user.email, // Return the email
+      communities: user.communities, // Return user communities (if needed)
     });
   } catch (err) {
-    console.error('Login error:', err); // Log the error in the backend
+    console.error('Login error:', err.message || err); // Log error details for debugging
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 // Forgot Password route
 router.post('/forgot-password', async (req, res) => {

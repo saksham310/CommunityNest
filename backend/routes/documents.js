@@ -63,47 +63,40 @@ router.post("/createDocument", async (req, res) => {
 });
 
 
-// Get documents by department and user (check user status)
+// Get documents by department and user (handles community & member status)
 router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req, res) => {
   try {
     const { departmentId, userId } = req.params;
 
-    // Validate the IDs
     if (!mongoose.Types.ObjectId.isValid(departmentId) || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ success: false, message: "Invalid department or user ID" });
     }
 
-    // Find the user to check if they are a community admin or a member
-    const user = await User.findById(userId).exec();
+    // Find user details
+    const user = await User.findById(userId).populate("communityDetails.communityId");
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    let documents;
+    let fetchUserId = userId; // Default: use logged-in userId
 
-    // If user is a community admin, get documents for their community and department
-    if (user.status === "community") {
-      documents = await Document.find({
-        department: departmentId,
-        userId: userId,  // Only fetch documents related to the community admin
-      })
-        .populate("department", "name")
-        .exec();
-    } else if (user.status === "member") {
-      // If user is a member, fetch documents for the adminId from communityDetails
-      const communityAdminId = user.communityDetails.adminId;
-      documents = await Document.find({
-        department: departmentId,
-        userId: communityAdminId,  // Fetch documents related to the admin's community
-      })
-        .populate("department", "name")
-        .exec();
-    } else {
-      return res.status(400).json({ success: false, message: "Invalid user status" });
+    if (user.status === "member") {
+      const adminId = user.communityDetails[0]?.adminId; // Fetch the admin ID for the community
+      if (!adminId) {
+        return res.status(400).json({ success: false, message: "Admin ID not found for the member" });
+      }
+      fetchUserId = adminId; // Use adminId to fetch documents
     }
 
-    // Return the documents
+    // Fetch documents based on the correct user ID
+    const documents = await Document.find({
+      department: departmentId,
+      userId: fetchUserId,
+    })
+      .populate("department", "name")
+      .exec();
+
     if (documents.length === 0) {
       return res.status(200).json({ success: true, message: "Repository empty", documents: [] });
     }
@@ -118,8 +111,6 @@ router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req,
     });
   }
 });
-
-
 
 
 // Delete a document

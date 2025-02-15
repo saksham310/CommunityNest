@@ -31,23 +31,44 @@ router.post('/createDepartment', async (req, res) => {
     }
 });
 
-// Fetch departments by userId
+
+// Fetch departments based on user status (community or member)
 router.get('/getDepartments', async (req, res) => {
     try {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ message: 'User ID is required' });
+      const { userId } = req.query;
+  
+      if (!userId) {
+        return res.status(400).json({ message: 'User ID is required' });
+      }
+  
+      // Get user by ID
+      const user = await User.findById(userId).populate('communityDetails.communityId');
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      let departments;
+  
+      if (user.status === 'community') {
+        // If the user is an admin, fetch departments for their community
+        departments = await Department.find({ userId });  // The userId is the adminId
+      } else if (user.status === 'member') {
+        // If the user is a member, fetch departments based on the community's adminId
+        const adminId = user.communityDetails[0]?.adminId; // Assuming the member is in one community
+        if (!adminId) {
+          return res.status(400).json({ message: 'Admin ID not found for the member' });
         }
-
-        const departments = await Department.find({ userId });
-
-        res.status(200).json({ data: departments });
+  
+        departments = await Department.find({ userId: adminId }); // AdminId is used to fetch departments
+      }
+  
+      res.status(200).json({ data: departments });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to fetch departments' });
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch departments' });
     }
-});
+  });
+  
 
 // PUT route to rename a department
 router.put('/renameDepartment/:id', async (req, res) => {
