@@ -11,22 +11,57 @@ const ScheduleMeetingForm = () => {
     attendees: "",
   });
 
-  const [editModalVisible, setEditModalVisible] = useState(false); // For toggling the edit modal
-  const [currentEvent, setCurrentEvent] = useState(null); // To store the event being edited
-
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [currentEvent, setCurrentEvent] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [meetingLink, setMeetingLink] = useState("");
   const [events, setEvents] = useState([]);
-  const [menuVisible, setMenuVisible] = useState(null); // Track visibility of the menu for each event
+  const [menuVisible, setMenuVisible] = useState(null);
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+
+  const [memberEmails, setMemberEmails] = useState([]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("auth") === "success") {
       setAuthenticated(true);
-      // alert("Successfully authenticated with Google!");
       fetchEvents();
     }
   }, []);
+
+  const fetchMemberEmails = async () => {
+    try {
+      const userId = localStorage.getItem("userId"); // Ensure userId is retrieved correctly
+
+      if (!userId) {
+        console.error("User ID is required");
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:5001/api/meeting/community/members?userId=${userId}`, // Ensure correct backend route
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+        const emails = result.emails.join(", "); // Convert array to comma-separated string
+
+        setMemberEmails(result.emails); // Save emails separately
+        setEventData((prev) => ({
+          ...prev,
+          attendees: emails, // Update attendees field
+        }));
+      } else {
+        console.error("Error fetching member emails:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching member emails:", error);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -112,40 +147,10 @@ const ScheduleMeetingForm = () => {
     });
   };
 
-  //edit event
   const handleEdit = (eventId) => {
-    console.log("Edit meeting with ID:", eventId);
-    // Find the event from the list using eventId
     const eventToEdit = events.find((event) => event.id === eventId);
-    setCurrentEvent(eventToEdit); // Set the event data for the modal
-    setEditModalVisible(true); // Show the modal
-  };
-
-  // Function to handle saving the edited event
-  const handleSaveEdit = async (editedEventData) => {
-    try {
-      const response = await fetch(
-        `http://localhost:5001/api/meeting/edit_meeting/${currentEvent.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(editedEventData),
-        }
-      );
-
-      const result = await response.json();
-      if (response.ok) {
-        alert("Event updated successfully!");
-        fetchEvents(); // Re-fetch the updated events list
-        setEditModalVisible(false); // Close the modal
-      } else {
-        alert(`Error: ${result.error}`);
-      }
-    } catch (error) {
-      console.error("Error updating event:", error);
-      alert("Something went wrong. Please try again.");
-    }
+    setCurrentEvent(eventToEdit);
+    setEditModalVisible(true);
   };
 
   const handleDelete = async (eventId) => {
@@ -179,7 +184,92 @@ const ScheduleMeetingForm = () => {
       <Sidebar />
       <div className="meeting-content">
         <div className="upcoming-meetings">
-          <h2>Upcoming Meetings</h2>
+          <h2>Meetings</h2>
+
+          {/* Message prompting user to sign in */}
+          {!authenticated && (
+            <p>Sign in with Google to view scheduled meetings</p>
+          )}
+
+          {/* Schedule Meeting Button (Appears after Meetings heading) */}
+          {!authenticated ? (
+            <button onClick={handleGoogleAuth}>Sign in with Google</button>
+          ) : (
+            <>
+              <button
+                onClick={async () => {
+                  setScheduleModalVisible(true);
+                  await fetchMemberEmails(); // Fetch emails before opening modal
+                }}
+                className="schedule-button"
+              >
+                Schedule Meeting
+              </button>
+
+              {scheduleModalVisible && (
+                <div className="modal">
+                  <div className="modal-content">
+                    <h2>Schedule a Meeting</h2>
+                    <form onSubmit={handleSubmit}>
+                      <input
+                        type="text"
+                        name="summary"
+                        placeholder="Event Title"
+                        value={eventData.summary}
+                        onChange={handleChange}
+                        required
+                      />
+                      <textarea
+                        name="description"
+                        placeholder="Event Description"
+                        value={eventData.description}
+                        onChange={handleChange}
+                        required
+                      />
+                      <input
+                        type="datetime-local"
+                        name="start"
+                        value={eventData.start}
+                        onChange={handleChange}
+                        required
+                      />
+                      <input
+                        type="datetime-local"
+                        name="end"
+                        value={eventData.end}
+                        onChange={handleChange}
+                        required
+                      />
+                      <input
+                        type="text"
+                        name="attendees"
+                        value={eventData.attendees} // This should update when emails are fetched
+                        placeholder="Attendees (comma-separated emails)"
+                        onChange={(e) =>
+                          setEventData((prev) => ({
+                            ...prev,
+                            attendees: e.target.value,
+                          }))
+                        } // Allow manual edits
+                        required
+                      />
+                    </form>
+                    <div className="button-group">
+                      <button type="submit">Schedule Meeting</button>
+                      <button
+                        className="close-modal-button"
+                        onClick={() => setScheduleModalVisible(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Meeting Cards List */}
           <ul>
             {events.length > 0 ? (
               events.map((event) => (
@@ -222,108 +312,6 @@ const ScheduleMeetingForm = () => {
                       )}
                     </div>
                   )}
-
-                  {/* Edit Modal */}
-                  {editModalVisible && currentEvent && (
-                    <div className="edit-modal">
-                      <div className="modal-content">
-                        <h2>Edit Event</h2>
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            const editedEventData = {
-                              summary: e.target.summary.value,
-                              description: e.target.description.value,
-                              start: e.target.start.value,
-                              end: e.target.end.value,
-                              attendees: e.target.attendees.value
-                                .split(",")
-                                .map((email) => email.trim()),
-                            };
-                            handleSaveEdit(editedEventData);
-                          }}
-                        >
-                          <div className="form-group">
-                            <label htmlFor="summary">Title</label>
-                            <input
-                              type="text"
-                              id="summary"
-                              name="summary"
-                              defaultValue={currentEvent.summary}
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label htmlFor="description">Description</label>
-                            <textarea
-                              id="description"
-                              name="description"
-                              defaultValue={currentEvent.description}
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label htmlFor="start">Start</label>
-                            <input
-                              type="datetime-local"
-                              id="start"
-                              name="start"
-                              defaultValue={new Date(
-                                currentEvent.start.dateTime
-                              )
-                                .toISOString()
-                                .slice(0, -8)} // Format the date for the input
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label htmlFor="end">End </label>
-                            <input
-                              type="datetime-local"
-                              id="end"
-                              name="end"
-                              defaultValue={new Date(currentEvent.end.dateTime)
-                                .toISOString()
-                                .slice(0, -8)} // Format the date for the input
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label htmlFor="attendees">
-                              Attendees (comma-separated emails)
-                            </label>
-                            <input
-                              type="text"
-                              id="attendees"
-                              name="attendees"
-                              defaultValue={currentEvent.attendees
-                                .map((attendee) => attendee.email)
-                                .join(", ")}
-                              required
-                            />
-                          </div>
-
-                          <div className="button-container">
-                            <button type="submit" className="save-button">
-                              Save Changes
-                            </button>
-                            <button
-                              type="button"
-                              className="cancel-button"
-                              onClick={() => setEditModalVisible(false)}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    </div>
-                  )}
-
                   <a
                     href={event.hangoutLink}
                     target="_blank"
@@ -337,70 +325,6 @@ const ScheduleMeetingForm = () => {
               <p>No upcoming meetings found.</p>
             )}
           </ul>
-        </div>
-        <div className="schedule-meeting-form">
-          <h2>Schedule a Meeting</h2>
-          {!authenticated ? (
-            <button onClick={handleGoogleAuth}>Sign in with Google</button>
-          ) : (
-            <>
-              <form onSubmit={handleSubmit}>
-                <input
-                  type="text"
-                  name="summary"
-                  placeholder="Event Title"
-                  value={eventData.summary} // Controlled input
-                  onChange={handleChange}
-                  required
-                />
-                <textarea
-                  name="description"
-                  placeholder="Event Description"
-                  value={eventData.description}
-                  onChange={handleChange}
-                  required
-                />
-                <input
-                  type="datetime-local"
-                  name="start"
-                  value={eventData.start}
-                  onChange={handleChange}
-                  required
-                />
-                <input
-                  type="datetime-local"
-                  name="end"
-                  value={eventData.end}
-                  onChange={handleChange}
-                  required
-                />
-                <input
-                  type="text"
-                  name="attendees"
-                  value={eventData.attendees} // Controlled input
-                  placeholder="Attendees (comma-separated emails)"
-                  onChange={handleChange}
-                  required
-                />
-                <button type="submit">Schedule Meeting</button>
-              </form>
-
-              {meetingLink && (
-                <div className="meeting-link">
-                  <h3>Meeting Scheduled Successfully!</h3>
-                  <p>
-                    <a
-                      href={meetingLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {meetingLink}
-                    </a>
-                  </p>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </div>
     </div>

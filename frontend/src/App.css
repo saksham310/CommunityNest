@@ -10,7 +10,7 @@
   background-color: black;
 
   padding: 20px;
-  color: white;
+
   z-index: 2;
   position: fixed; /* Fix the header at the top */
   top: 0; /* Make sure it's at the top of the screen */
@@ -35,23 +35,7 @@
 }
 
 /* Register Button */
-.Register-btn {
-  padding: 8px 20px;
-  background-color: white;
-  color: #333;
-  border: 2px solid #333;
-  border-radius: 25px;
-  text-decoration: none;
-  font-weight: bold;
-  margin-left: 15px;
-  cursor: pointer;
-  transition: background-color 0.3s, color 0.3s;
-}
 
-.Register-btn:hover {
-  background-color: #333;
-  color: white;
-}
 
 /* App Body Layout */
 .App-body {

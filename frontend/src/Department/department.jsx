@@ -5,7 +5,6 @@ import "./department.css";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import dotsIcon from "../dots.png"; // Ensure the correct path
 
-
 const Department = () => {
   const [departments, setDepartments] = useState([]);
   const [newDepartment, setNewDepartment] = useState("");
@@ -15,12 +14,18 @@ const Department = () => {
   const [renameValue, setRenameValue] = useState("");
   const [activeMenu, setActiveMenu] = useState(null); // Track which menu is open
   const navigate = useNavigate(); // Initialize navigate hook
+  const [userStatus, setUserStatus] = useState(null); // Track user status 
 
   useEffect(() => {
+    // Call fetchUserStatus to update userStatus
+    fetchUserStatus();
+
     const userId = localStorage.getItem("userId");
     if (userId) {
       axios
-        .get(`http://localhost:5001/api/department/getDepartments?userId=${userId}`)
+        .get(
+          `http://localhost:5001/api/department/getDepartments?userId=${userId}`
+        )
         .then((response) => {
           setDepartments(response.data.data);
         })
@@ -32,8 +37,20 @@ const Department = () => {
       alert("You must be logged in to view your departments");
     }
   }, []);
-  
-  
+
+  const fetchUserStatus = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:5001/api/auth/data", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      // Set the user status based on the response
+      setUserStatus(response.data.status); // This will set the userStatus to "member" or "community"
+    } catch (error) {
+      console.error("Error fetching user status:", error);
+    }
+  };
 
   const addDepartment = async () => {
     if (newDepartment.trim()) {
@@ -44,10 +61,13 @@ const Department = () => {
       }
 
       try {
-        const response = await axios.post("http://localhost:5001/api/department/createDepartment", {
-          name: newDepartment,
-          userId,
-        });
+        const response = await axios.post(
+          "http://localhost:5001/api/department/createDepartment",
+          {
+            name: newDepartment,
+            userId,
+          }
+        );
 
         setDepartments([...departments, response.data.data]);
         setNewDepartment("");
@@ -60,15 +80,20 @@ const Department = () => {
   };
 
   const handleDeleteDepartment = (id) => {
-    if (!window.confirm("Are you sure you want to delete this department?")) return;
+    if (!window.confirm("Are you sure you want to delete this department?"))
+      return;
 
-    axios.delete(`http://localhost:5001/api/department/deleteDepartment/${id}`)
+    axios
+      .delete(`http://localhost:5001/api/department/deleteDepartment/${id}`)
       .then(() => {
         setDepartments(departments.filter((dept) => dept._id !== id));
         alert("Department deleted successfully.");
       })
       .catch((err) => {
-        console.error("Error deleting department:", err.response ? err.response.data : err);
+        console.error(
+          "Error deleting department:",
+          err.response ? err.response.data : err
+        );
         alert("Error deleting department, please try again.");
       });
   };
@@ -117,43 +142,49 @@ const Department = () => {
       <Sidebar />
       <div className="header-container">
         <h1>Departments</h1>
-        <button onClick={() => setShowModal(true)}>Create Department</button>
+        {/* Conditionally render the "Create Department" button */}
+        {userStatus !== "member" && (
+          <button onClick={() => setShowModal(true)}>Create Department</button>
+        )}
       </div>
 
       {/* Grid Layout for Departments */}
       <div className="department-container">
-  {departments.length === 0 ? (
-    <p>No departments found</p>
-  ) : (
-    departments.map((dept) => (
-      <div key={dept._id} className="department-card">
-        <span
-          className="department-name"
-          onClick={() => handleDepartmentClick(dept)} // Navigate only when clicking the name
-        >
-          {dept.name}
-        </span>
-        <img
-          src={dotsIcon}
-          alt="Options"
-          className="dots-icon"
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent card click when clicking on dots
-            setActiveMenu(activeMenu === dept._id ? null : dept._id);
-          }}
-        />
+        {departments.length === 0 ? (
+          <p>No departments found</p>
+        ) : (
+          departments.map((dept) => (
+            <div key={dept._id} className="department-card">
+              <span
+                className="department-name"
+                onClick={() => handleDepartmentClick(dept)} // Navigate only when clicking the name
+              >
+                {dept.name}
+              </span>
+              <img
+                src={dotsIcon}
+                alt="Options"
+                className="dots-icon"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click when clicking on dots
+                  setActiveMenu(activeMenu === dept._id ? null : dept._id);
+                }}
+              />
 
-        {activeMenu === dept._id && (
-          <div className="dropdown-menu">
-            <button onClick={() => handleRenameDepartment(dept)}>Rename</button>
-            <button onClick={() => handleDeleteDepartment(dept._id)}>Delete</button>
-          </div>
+              {activeMenu === dept._id && (
+                <div className="dropdown-menu">
+                  <button onClick={() => handleRenameDepartment(dept)}>
+                    Rename
+                  </button>
+                  <button onClick={() => handleDeleteDepartment(dept._id)}>
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
         )}
       </div>
-    ))
-  )}
-</div>
-
 
       {/* Modal for creating department */}
       {showModal && (

@@ -112,11 +112,13 @@ router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req,
   }
 });
 
-
-// Delete a document
-router.delete("/deleteDocument", async (req, res) => {
+router.delete("/deleteDocument/:id", async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id } = req.params; // Extract ID from URL
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid document ID" });
+    }
 
     const deletedDocument = await Document.findByIdAndDelete(id);
 
@@ -129,6 +131,9 @@ router.delete("/deleteDocument", async (req, res) => {
     res.status(500).json({ success: false, message: "Error deleting document", error });
   }
 });
+
+
+
 
 // Delete department and all documents in it only if the document repository is empty
 router.delete("/deleteByDepartment/:departmentName", async (req, res) => {

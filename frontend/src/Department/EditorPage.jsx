@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import JoditEditor from "jodit-react";
@@ -8,12 +8,14 @@ import "./DocumentRepository.css";
 const EditorPage = () => {
   const { id, department } = useParams();
   const [documentTitle, setDocumentTitle] = useState("");
-  const [editorContent, setEditorContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5001/api/document";
+
+  const editor = useRef(null); // Create a ref for JoditEditor
+  const editorContentRef = useRef(""); // Ref to store the editor content
 
   useEffect(() => {
     if (id) {
@@ -24,7 +26,7 @@ const EditorPage = () => {
         .then((res) => {
           const doc = res.data.document;
           setDocumentTitle(doc.title);
-          setEditorContent(doc.content);
+          editorContentRef.current = doc.content; // Set editor content in ref
           setIsEditing(true);
         })
         .catch((err) => {
@@ -37,8 +39,9 @@ const EditorPage = () => {
     }
   }, [id]);
 
+  // Handle saving document changes
   const saveDocument = () => {
-    if (!documentTitle.trim() || !editorContent.trim()) {
+    if (!documentTitle.trim() || !editorContentRef.current.trim()) {
       alert("Title and content cannot be empty!");
       return;
     }
@@ -48,7 +51,7 @@ const EditorPage = () => {
 
     const payload = {
       title: documentTitle,
-      content: editorContent,
+      content: editorContentRef.current, // Use content from ref
       userId: localStorage.getItem("userId"),
       department,
       ...(isEditing && { id }),
@@ -77,6 +80,13 @@ const EditorPage = () => {
       });
   };
 
+  const editorConfig = {
+    readonly: false,
+    height: 400,
+    tabIndex: 0, // Ensure the editor is focusable
+    autofocus: false,
+  };
+
   return (
     <div className="document-repository-page">
       <Sidebar />
@@ -94,17 +104,24 @@ const EditorPage = () => {
         />
 
         <JoditEditor
-          value={editorContent}
-          onChange={(newContent) => setEditorContent(newContent)}
-          config={{ readonly: false, height: 400 }}
+          ref={editor}
+          value={editorContentRef.current} // Use the ref value
+          onChange={(newContent) => {
+            editorContentRef.current = newContent; // Update content in ref
+          }}
+          config={editorConfig}
+          onBlur={() => {
+            // Optional: Save content to state when editor loses focus
+            // setEditorContent(editorContentRef.current);
+          }}
         />
 
-        <button 
-          className="save-btn" 
-          onClick={saveDocument} 
-          disabled={loading}
-        >
-          {loading ? "Saving..." : isEditing ? "Save Changes" : "Create Document"}
+        <button className="save-btn" onClick={saveDocument} disabled={loading}>
+          {loading
+            ? "Saving..."
+            : isEditing
+            ? "Save Changes"
+            : "Create Document"}
         </button>
 
         <button

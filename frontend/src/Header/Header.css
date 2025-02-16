@@ -34,8 +34,6 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  margin-right: 20px;
-  text-align: right;
 }
 
 .Username {
@@ -94,63 +92,103 @@
   color: white;
 }
 
-/* Logout Button */
-.Logout-btn {
+/* User Dropdown */
+.User-dropdown {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 8px 20px;
-  background: red;
-  color: white;
-  border: none;
-  border-radius: 25px;
+  gap: 10px;
+}
+
+/* User Dropdown */
+.User-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* User Section */
+.User-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+/* User Info (Separate Div) */
+
+
+.Username {
   font-weight: bold;
+  color: white;
+}
+
+.Email {
+  font-size: 14px;
+  color: #cccccc;
+}
+
+/* Dropdown Icon in Separate Div */
+.Dropdown-icon-container {
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  transition: 0.3s;
 }
 
-.Logout-btn:hover {
-  background: darkred;
+.Dropdown-icon {
+  color: rgb(255, 255, 255);
+  font-size: 16px;
+  background-color: none;
+}
+.Dropdown-btn{
+  background-color: #222;
+  margin-left: 0px;
+  justify-content: center;
+}
+.Dropdown-btn:hover{
+  background-color: #222222;
+  margin-left: 0px;
+  justify-content: center;
 }
 
-.Logout-icon {
-  margin-right: 8px;
-}
-
-/* Logout Confirmation Popup */
-.Logout-popup {
+/* Dropdown Menu */
+.Dropdown-menu {
   position: absolute;
-  top: 60px;
-  right: 30px;
+  top: 40px;
+  right: 0;
   background: white;
-  padding: 15px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  text-align: center;
-}
-
-.Confirm-btn {
-  background: red;
-  color: white;
-  padding: 6px 12px;
-  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-  cursor: pointer;
-  margin-right: 5px;
+  padding: 10px;
+  width: 120px;
 }
 
-.Cancel-btn {
-  background: #333;
-  color: white;
-  padding: 6px 12px;
+.Dropdown-item {
+  background: none;
   border: none;
-  border-radius: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
   cursor: pointer;
+  color: black;  /* Set text color to black */
+  font-weight: semi-bold;
+  right: 0;
 }
 
-.Confirm-btn:hover {
-  background: darkred;
+.Dropdown-item:hover {
+  background-color: white;
+  color:  #cb1f1f;
 }
 
-.Cancel-btn:hover {
-  background: black;
+/* Notification Icon */
+.Notification-container {
+  position: relative;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.Icon {
+  font-size: 1.8rem;
+  color: white;
 }

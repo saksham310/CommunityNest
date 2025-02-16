@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const router = express.Router();
 const session = require('express-session');
 const { v4: uuid } = require('uuid');
+const User = require("../models/User"); // Assuming you have a User model
+const Community = require("../models/Community"); // Assuming you have a Community model
 
 dotenv.config();
 
@@ -185,7 +187,46 @@ router.delete('/delete_meeting/:eventId', ensureAuthenticated, async (req, res) 
     }
 });
 
-
+router.get("/community/members", async (req, res) => {
+    try {
+      const { userId } = req.query; // Get userId from query parameters
+  
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+  
+      const user = await User.findById(userId); // Fetch user details
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      let memberIds = [];
+  
+      if (user.status === "community") {
+        // For 'community' status, get members of the community where userId is the admin
+        const community = await Community.findOne({ admin: userId });
+        if (!community) return res.status(404).json({ error: "Community not found" });
+        memberIds = community.members;
+      } else if (user.status === "member") {
+        // For 'member' status, get the community where the user is a member
+        const community = await Community.findOne({ admin: user.communityDetails[0].adminId });
+        if (!community) return res.status(404).json({ error: "Community not found" });
+        memberIds = community.members;
+      }
+  
+      // Fetch the user details of all members using their memberIds
+      const members = await User.find({ _id: { $in: memberIds } }, "email");
+      const emails = members.map((member) => member.email);
+  
+      res.json({ emails });
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+  
+  
 
 
 module.exports = router;

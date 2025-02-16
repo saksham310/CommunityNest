@@ -40,6 +40,9 @@ const Login = () => {
       localStorage.setItem('username', response.data.username);
       localStorage.setItem('email', response.data.email);
 
+      localStorage.setItem("status", response.data.status); // Assuming status is available in the response
+
+
       // Fetch user data after login
       await fetchUserData(response.data.token);
 

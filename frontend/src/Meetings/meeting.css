@@ -1,59 +1,66 @@
 /* General layout for the meeting container */
 .meeting-container {
     display: flex;
+    justify-content: center;
+    align-items: center;
     height: 100vh;
+    flex-direction: column;
+    padding: 20px;
     margin-left: 230px;
     margin-top: 70px;
     font-family: shatoshi, sans-serif;
-}
-
-.meeting-content {
+  }
+  
+  /* Meeting content styles */
+  .meeting-content {
     display: flex;
     flex: 1;
     padding: 20px;
     gap: 20px;
-}
-
-/* Upcoming meetings section */
-.upcoming-meetings {
-    width: 50%;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  /* Upcoming meetings section */
+  .upcoming-meetings {
+    width: 100%;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 10px;
     overflow-y: auto;
-}
-
-.upcoming-meetings h2 {
-    margin-bottom: 15px;
+  }
+  
+  .upcoming-meetings h2 {
+    margin: 0 0 15px;
     text-align: center;
-}
-
-/* Meeting card styles */
-.meeting-card {
+  }
+  
+  /* Meeting card styles */
+  .meeting-card {
     background: #fff;
+    width: 700px;
     padding: 15px;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
     position: relative;
-}
-
-/* Text inside meeting cards */
-.meeting-card p {
+    text-align: left;
+  }
+  
+  .meeting-card p {
     margin: 4px;
     flex: 1;
-    text-align: left;
-}
-
-.meeting-card p strong {
+    text-align:left;
+  }
+  
+  .meeting-card p strong {
     font-size: 1.1em;
     color: #333;
-}
-
-/* Link in meeting card */
-.meeting-card a {
+  }
+  
+  .meeting-card a {
     position: absolute;
     bottom: 15px;
     right: 15px;
@@ -63,106 +70,23 @@
     text-decoration: none;
     border-radius: 5px;
     text-align: center;
-}
-
-.meeting-card a:hover {
+  }
+  
+  .meeting-card a:hover {
     background-color: #0056b3;
-}
-
-/* Three dots for options */
-.three-dots {
+  }
+  
+  /* Three dots for options */
+  .three-dots {
     position: absolute;
     top: 10px;
     right: 15px;
     padding: 8px 12px;
     cursor: pointer;
-}
-
-/* Dropdown menu for meeting options */
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 30px;
-    right: 10px;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dropdown-menu.show {
-    display: block;
-}
-
-.dropdown-menu a {
-    display: block;
-    padding: 8px 12px;
-    color: #333;
-    text-decoration: none;
-}
-
-.dropdown-menu a:hover {
-    background-color: #f1f1f1;
-}
-
-/* Schedule meeting form */
-.schedule-meeting-form {
-    width: 40%;
-    height: fit-content;
-    padding: 20px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding-right: 10px;
-    margin-top: 20px;
-    font-family: shatoshi, sans-serif;
-}
-
-.schedule-meeting-form h2 {
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.schedule-meeting-form form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.schedule-meeting-form input,
-.schedule-meeting-form textarea {
-    width: 93%;
-    height: auto;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-.schedule-meeting-form button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.schedule-meeting-form button:hover {
-    background-color: #218838;
-}
-
-/* Meeting link section */
-.meeting-link {
-    text-align: center;
-    margin-top: 15px;
-}
-
-.meeting-link a {
-    color: #007bff;
-    font-weight: bold;
-}
-
-/* Options menu for meeting */
-.options-menu {
+  }
+  
+  /* Options menu for meeting */
+  .options-menu {
     position: absolute;
     width: 130px;
     top: 30px;
@@ -172,9 +96,9 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     padding: 8px 0;
     z-index: 10;
-}
-
-.options-menu button {
+  }
+  
+  .options-menu button {
     background: none;
     border: none;
     padding: 8px 15px;
@@ -183,120 +107,123 @@
     cursor: pointer;
     color: #333;
     border-radius: 8px;
-    margin-bottom: 2px;
-    margin-right: 5px;
-    margin-left: 5px;
-}
-
-.options-menu button:hover {
+    margin: 2px 5px;
+  }
+  
+  .options-menu button:hover {
     color: #797979;
-}
-/* Edit modal overlay */
-.edit-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(70, 69, 69, 0.4); /* Overlay background */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 11;
-}
-
-/* Edit modal content */
-.modal-content {
-    background: #fff;
-    padding: 30px;
-    border-radius: 12px;
-    width: 450px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    position: relative;
-}
-
-/* Styling for form fields */
-.form-group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: #333;
-}
-
-.modal-content input,
-.modal-content textarea {
-    width: 95%;
-    padding: 10px;
-    margin: 5px 0;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    background-color: #f9f9f9;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  /* Schedule meeting form */
+  .schedule-meeting-form {
+    padding: 20px;
+    background-color: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     font-family: shatoshi, sans-serif;
-}
-
-/* Focus effect on input fields */
-.modal-content input:focus,
-.modal-content textarea:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
-}
-
-/* Button container for Save and Cancel buttons */
-.button-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-/* Modal buttons (Save and Cancel) */
-.modal-content button {
-    padding: 8px 16px; /* Smaller padding */
-    border-radius: 8px;
-    font-size: 0.9rem; /* Smaller font size */
-    cursor: pointer;
-    border: none;
-    width: auto; /* Automatically adjust width */
+  }
+  
+  .schedule-meeting-form h2 {
+    margin-bottom: 15px;
     text-align: center;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-/* Save button */
-.save-button {
+  }
+  
+  .schedule-meeting-form form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .schedule-meeting-form input,
+  .schedule-meeting-form textarea {
+    width: 93%;
+    height: auto;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .schedule-meeting-form button {
     background-color: #28a745;
     color: white;
-}
-
-.save-button:hover {
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .schedule-meeting-form button:hover {
     background-color: #218838;
-    transform: translateY(-2px); /* Subtle lift effect */
-}
-
-/* Cancel button */
-.cancel-button {
-    background-color: #f44336;
-    color: white;
-}
-
-.cancel-button:hover {
-    background-color: #e53935;
-    transform: translateY(-2px); /* Subtle lift effect */
-}
-.form-group {
+  }
+  .modal {
+    top: 20%;
+    left: 35%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
     display: flex;
     flex-direction: column;
-    margin-top: 15px;
-    margin-bottom: 4px;
-    text-align: left;
-    font-size: 14px;
-}
+  }
+  
+  .modal h2 {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  
+  .modal form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .modal input,
+  .modal textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+  
+  .modal textarea {
+    height: 40px;
+    resize: none;
+  }
+  
+  /* Button container */
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  /* Button styles */
+  .button-group button {
+    width: 48%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .modal button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .modal button[type="submit"]:hover {
+    background-color: #0056b3;
+  }
+  
+  .close-modal-button {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .close-modal-button:hover {
+    background-color: #a71d2a;
+  }
+  

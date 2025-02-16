@@ -14,7 +14,7 @@ const Sidebar = () => (
     {/* Sidebar Items */}
     <div className="Sidebar-menu">
       <Link to="/dashboard" className="Sidebar-item">
-        <div className="Sidebar-icon" style={{ backgroundColor: '#34c759' }}>
+        <div className="Sidebar-icon" style={{ backgroundColor: '#34c759', color: 'white' }}>
           <FaHome />
         </div>
         <span className="Sidebar-text">Dashboard</span>
@@ -22,28 +22,28 @@ const Sidebar = () => (
 
       {/* Members Link (Added Below Dashboard) */}
       <Link to="/members" className="Sidebar-item">
-        <div className="Sidebar-icon" style={{ backgroundColor: '#4b7bec' }}>
+        <div className="Sidebar-icon" style={{ backgroundColor: '#4b7bec', color: 'white'  }}>
           <FaUserFriends />
         </div>
         <span className="Sidebar-text">Members</span>
       </Link>
 
       <Link to="/department" className="Sidebar-item">
-        <div className="Sidebar-icon" style={{ backgroundColor: '#a259ff' }}>
+        <div className="Sidebar-icon" style={{ backgroundColor: '#a259ff' , color: 'white' }}>
           <FaSitemap />
         </div>
         <span className="Sidebar-text">Departments</span>
       </Link>
 
       <Link to="/admin-user-meetings" className="Sidebar-item">
-        <div className="Sidebar-icon" style={{ backgroundColor: '#ffcc00' }}>
+        <div className="Sidebar-icon" style={{ backgroundColor: '#ffcc00' , color: 'white' }}>
           <FaUsers />
         </div>
         <span className="Sidebar-text">Meetings</span>
       </Link>
 
       <Link to="/admin-user-events" className="Sidebar-item">
-        <div className="Sidebar-icon" style={{ backgroundColor: '#007aff' }}>
+        <div className="Sidebar-icon" style={{ backgroundColor: '#007aff', color: 'white'  }}>
           <FaCalendarAlt />
         </div>
         <span className="Sidebar-text">Events</span>

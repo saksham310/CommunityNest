@@ -1,5 +1,4 @@
 /* Sidebar container */
-
 .Sidebar {
   width: 250px;
   height: 100vh; /* Full height of the screen */
@@ -7,7 +6,7 @@
   color: white;
   padding-top: 20px;
   position: fixed; /* Keep the sidebar fixed to the left */
-  top: 95px; /* Adjusted top to prevent overlap with header */
+  top: 40px; /* Adjusted top to prevent overlap with header */
   left: 0;
   transition: all 0.3s ease;
   z-index: 1; /* Ensure it's behind the header */
@@ -29,7 +28,6 @@
   object-fit: contain; /* Maintain the aspect ratio of the logo */
 }
 
-
 /* Sidebar menu container */
 .Sidebar-menu {
   width: 100%;
@@ -48,6 +46,7 @@
   margin: 5px 0;
   border-radius: 8px;
   transition: background-color 0.3s ease;
+  text-decoration: none; /* Remove underline */
 }
 
 .Sidebar-item:hover {
@@ -72,6 +71,7 @@
   font-size: 16px;
   color: #333; /* Text color */
   font-weight: 500;
+  text-decoration: none; /* Ensure no underline on the text */
 }
 
 /* Active item (if needed, dynamically add the 'active' class in React) */

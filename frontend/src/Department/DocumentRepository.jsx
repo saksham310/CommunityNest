@@ -21,96 +21,97 @@ const DocumentRepositoryPage = () => {
   const [, setIsUploadModalOpen] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [fileContent, setFileContent] = useState(null); // New state for file content
- // Get userId and role from localStorage
- const userId = localStorage.getItem("userId");
- const userRole = localStorage.getItem("status"); // "community" or "member"
+  // Get userId and role from localStorage
+  const userId = localStorage.getItem("userId");
+  const userRole = localStorage.getItem("status"); // "community" or "member"
 
- const [adminId, setAdminId] = useState(null);
- useEffect(() => {
-  if (!userId) {
-    setErrorMessage("User is not logged in.");
-    navigate("/login");
-    return;
-  }
+  const [adminId, setAdminId] = useState(null);
+  useEffect(() => {
+    if (!userId) {
+      setErrorMessage("User is not logged in.");
+      navigate("/login");
+      return;
+    }
 
-  // If the user is a "member", fetch adminId first
-  if (userRole === "member") {
+    // If the user is a "member", fetch adminId first
+    if (userRole === "member") {
+      axios
+        .get(`http://localhost:5001/api/users/getCommunityDetails/${userId}`)
+        .then((res) => {
+          if (res.data && res.data.communityDetails.length > 0) {
+            const adminIdFromDB = res.data.communityDetails[0].adminId;
+            setAdminId(adminIdFromDB);
+            console.log("Fetched adminId for member:", adminIdFromDB);
+
+            // Fetch documents and files after adminId is set
+            fetchDocumentsAndFiles(department, adminIdFromDB);
+          } else {
+            setErrorMessage("Failed to retrieve admin details.");
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching adminId:", err);
+          setErrorMessage("Failed to load community details.");
+        });
+    } else {
+      // Fetch documents and files for community/admin role
+      fetchDocumentsAndFiles(department, userId);
+    }
+  }, [department, userId, userRole]);
+
+  // Function to fetch both documents and files
+  const fetchDocumentsAndFiles = (dept, fetchUserId) => {
+    let noDocuments = false;
+    let noFiles = false;
+
+    console.log("Fetching documents for user:", fetchUserId); // Debugging
+
+    // Fetch documents
     axios
-      .get(`http://localhost:5001/api/users/getCommunityDetails/${userId}`)
+      .get(
+        `${backendUrl}/getDocumentsByDepartmentAndUser/${dept}/${fetchUserId}`
+      )
       .then((res) => {
-        if (res.data && res.data.communityDetails.length > 0) {
-          const adminIdFromDB = res.data.communityDetails[0].adminId;
-          setAdminId(adminIdFromDB);
-          console.log("Fetched adminId for member:", adminIdFromDB);
-
-          // Fetch documents and files after adminId is set
-          fetchDocumentsAndFiles(department, adminIdFromDB);
-        } else {
-          setErrorMessage("Failed to retrieve admin details.");
+        if (res.data.documents.length === 0) {
+          noDocuments = true;
         }
+        setDocuments(res.data.documents);
+        console.log("Documents fetched:", res.data.documents); // Debugging
       })
       .catch((err) => {
-        console.error("Error fetching adminId:", err);
-        setErrorMessage("Failed to load community details.");
-      });
-  } else {
-    // Fetch documents and files for community/admin role
-    fetchDocumentsAndFiles(department, userId);
-  }
-}, [department, userId, userRole]); 
-
-// Function to fetch both documents and files
-const fetchDocumentsAndFiles = (dept, fetchUserId) => {
-  let noDocuments = false;
-  let noFiles = false;
-
-  console.log("Fetching documents for user:", fetchUserId); // Debugging
-
-  // Fetch documents
-  axios
-    .get(`${backendUrl}/getDocumentsByDepartmentAndUser/${dept}/${fetchUserId}`)
-    .then((res) => {
-      if (res.data.documents.length === 0) {
         noDocuments = true;
-      }
-      setDocuments(res.data.documents);
-      console.log("Documents fetched:", res.data.documents); // Debugging
-    })
-    .catch((err) => {
-      noDocuments = true;
-      console.error("Error fetching documents:", err);
-    });
+        console.error("Error fetching documents:", err);
+      });
 
-  // Fetch files
-  axios
-    .get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`)
-    .then((res) => {
-      if (res.data.files.length === 0) {
+    // Fetch files
+    axios
+      .get(
+        `${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`
+      )
+      .then((res) => {
+        if (res.data.files.length === 0) {
+          noFiles = true;
+        }
+        setFiles(res.data.files);
+        console.log("Files fetched:", res.data.files); // Debugging
+      })
+      .catch((err) => {
         noFiles = true;
-      }
-      setFiles(res.data.files);
-      console.log("Files fetched:", res.data.files); // Debugging
-    })
-    .catch((err) => {
-      noFiles = true;
-      console.error("Error fetching files:", err);
-    });
+        console.error("Error fetching files:", err);
+      });
 
-  // Handle empty repository
-  if (noDocuments && noFiles) {
-    setErrorMessage("Repository empty.");
-  } else {
-    setErrorMessage(null);
-  }
-};
+    // Handle empty repository
+    if (noDocuments && noFiles) {
+      setErrorMessage("Repository empty.");
+    } else {
+      setErrorMessage(null);
+    }
+  };
 
-  
-  
-  //delete document
   const deleteDocument = (id) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       axios
-        .delete(`${fileBackendUrl}/deleteFile/${id}`)
+        .delete(`${backendUrl}/deleteDocument/${id}`) // <-- Fix: Pass id in URL
         .then((res) => {
           const data = res.data;
           if (data.success) {
@@ -128,7 +129,7 @@ const fetchDocumentsAndFiles = (dept, fetchUserId) => {
         });
     }
   };
-
+  
   //delete file
   const deleteFile = (id) => {
     if (window.confirm("Are you sure you want to delete this file?")) {
@@ -159,15 +160,6 @@ const fetchDocumentsAndFiles = (dept, fetchUserId) => {
     }
   };
 
-  // Handle viewing the file in the modal
-  //  const handleViewClick = (file) => {
-  //   setFileContent({
-  //     filename: file.filename,
-  //     fileType: file.fileType,
-  //     filePath: file.filePath,
-  //   });
-  //   setIsModalOpen(true);
-  // };
   const handleViewClick = (file) => {
     if (!file || !file._id) {
       console.error("Invalid file object:", file);
@@ -177,11 +169,7 @@ const fetchDocumentsAndFiles = (dept, fetchUserId) => {
     console.log("Opening file:", pdfUrl);
     window.open(pdfUrl, "_blank");
   };
-  
-  
-  
-  
-  
+
   // Handle file selection
 
   // Handle file upload
@@ -229,7 +217,6 @@ const fetchDocumentsAndFiles = (dept, fetchUserId) => {
       alert("Failed to upload file.");
     }
   };
-
 
   return (
     <div className="document-repository-page">
@@ -306,7 +293,7 @@ const fetchDocumentsAndFiles = (dept, fetchUserId) => {
                 <p>Uploaded: {new Date(file.uploadedAt).toDateString()}</p>
               </div>
               <div className="button-container">
-              <button
+                <button
                   className="view-btn"
                   onClick={() => handleViewClick(file)}
                 >

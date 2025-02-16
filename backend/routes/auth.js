@@ -145,6 +145,7 @@ router.post('/login', async (req, res) => {
       email: user.email, // Return the email
       communities: user.communities, // Return user communities (if needed)
     });
+    
   } catch (err) {
     console.error('Login error:', err.message || err); // Log error details for debugging
     res.status(500).json({ message: 'Server error' });
