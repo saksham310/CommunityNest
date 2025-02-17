@@ -167,69 +167,63 @@ router.delete("/deleteByDepartment/:departmentName", async (req, res) => {
   }
 });
 
-// Edit an existing document
 router.put("/editDocument", async (req, res) => {
   try {
     const { id, title, content, department, userId } = req.body;
 
-    // Validate input
-    if (!title || !content || !department || !userId || !id) {
+    // Check if all required fields exist
+    if (!id || !title || !content || !department || !userId) {
       return res.status(400).json({
         success: false,
         message: "All fields (id, title, content, department, userId) are required",
       });
     }
 
-    // Ensure the department exists
+    // Validate if department exists
     const departmentData = await Department.findById(department).exec();
     if (!departmentData) {
-      return res.status(404).json({
-        success: false,
-        message: "Department not found",
-      });
+      return res.status(404).json({ success: false, message: "Department not found" });
     }
 
-    // Ensure the user exists
+    // Validate if user exists
     const user = await User.findById(userId).exec();
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Find the document by ID
+    // Validate permissions
+    if (user.status !== "community" && user.status !== "member") {
+      return res.status(403).json({ success: false, message: "You do not have permission to edit this document." });
+    }
+
+    // Find the existing document
     const document = await Document.findById(id);
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
+      return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    // Update document details
+    // Update the document fields
     document.title = title;
     document.content = content;
-    document.department = departmentData._id; // Store department ID
-    document.userId = userId;
+    document.department = departmentData._id;
+    document.lastEditedBy = userId; // Ensure last editor is updated
 
-    // Save updated document
     await document.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Document updated successfully!",
-      document,
+    res.status(200).json({ 
+      success: true, 
+      message: "Document updated successfully!", 
+      document 
     });
+
   } catch (error) {
     console.error("Error updating document:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error updating document",
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: "Error updating document", error: error.message });
   }
 });
+
+
+
 
 // Get a document by ID
 router.get("/getDocumentById/:id", async (req, res) => {
@@ -269,100 +263,6 @@ router.get("/getDocumentById/:id", async (req, res) => {
     });
   }
 });
-
-
-
-
-
-// // Configure Multer for file storage
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, "uploads/"); // Store files in an 'uploads' folder
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, Date.now() + "-" + file.originalname); // Unique filename
-//   },
-// });
-
-// const upload = multer({ storage });
-
-// // Route to upload a file
-// router.post("/uploadFile", upload.single("file"), async (req, res) => {
-//   try {
-//     const { department, userId } = req.body;
-
-//     if (!req.file || !department || !userId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "File, department, and userId are required",
-//       });
-//     }
-
-//     // Ensure department and user exist
-//     const departmentData = await Department.findById(department);
-//     if (!departmentData) {
-//       return res.status(404).json({ success: false, message: "Department not found" });
-//     }
-
-//     const user = await User.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ success: false, message: "User not found" });
-//     }
-
-//     // Save file metadata in the database
-//     const newFile = new File({
-//       filename: req.file.filename,
-//       filePath: req.file.path,
-//       fileType: req.file.mimetype,
-//       department: department,
-//       userId: userId,
-//     });
-
-//     await newFile.save();
-
-//     res.status(201).json({
-//       success: true,
-//       message: "File uploaded successfully!",
-//       file: newFile,
-//     });
-//   } catch (error) {
-//     console.error("Error uploading file:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Error uploading file",
-//       error: error.message,
-//     });
-//   }
-// });
-
-// // Route to get files by department and user
-// router.get("/getFilesByDepartmentAndUser/:departmentId/:userId", async (req, res) => {
-//   try {
-//     const { departmentId, userId } = req.params;
-
-//     if (!mongoose.Types.ObjectId.isValid(departmentId) || !mongoose.Types.ObjectId.isValid(userId)) {
-//       return res.status(400).json({ success: false, message: "Invalid department or user ID" });
-//     }
-
-//     const files = await File.find({
-//       department: departmentId,
-//       userId: userId,
-//     });
-
-//     if (files.length === 0) {
-//       return res.status(200).json({ success: true, message: "No files found", files: [] });
-//     }
-
-//     res.status(200).json({ success: true, files });
-//   } catch (error) {
-//     console.error("Error fetching files:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Error fetching files",
-//       error: error.message,
-//     });
-//   }
-// });
 
 
 module.exports = router;

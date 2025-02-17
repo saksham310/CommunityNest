@@ -15,6 +15,16 @@
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
+  .jodit-container {
+    flex-grow: 1; /* Allow editor to grow */
+    height: 100%;
+    min-height: 500px; /* Set a reasonable minimum height */
+    max-height: calc(100vh - 150px); /* Adjust based on header and buttons */
+  }
+  
+  .jodit-workplace {
+    height: 100% !important; /* Ensure the editing area takes full height */
+  }
   
   h2 {
     font-size: 2rem;

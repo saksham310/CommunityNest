@@ -5,7 +5,7 @@ const FileSchema = new mongoose.Schema({
   filePath: { type: String, required: true },
   fileType: { type: String, required: true },
   department: { type: mongoose.Schema.Types.ObjectId, ref: "Department", required: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true },
   uploadedAt: { type: Date, default: Date.now },
 });
 

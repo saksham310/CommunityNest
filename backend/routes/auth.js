@@ -234,6 +234,30 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// Route to get community details for a user
+router.get("/getCommunityDetails/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Fetch the user with the provided userId and populate communityDetails
+    const user = await User.findById(userId).populate({
+      path: "communityDetails.communityId", // Populate community details
+      select: "name" // Select relevant fields, e.g., community name
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      communityDetails: user.communityDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching community details:", error);
+    res.status(500).json({ message: "Error fetching community details" });
+  }
+});
 
 
 

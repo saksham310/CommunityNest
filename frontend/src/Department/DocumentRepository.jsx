@@ -59,6 +59,8 @@ const DocumentRepositoryPage = () => {
     }
   }, [department, userId, userRole]);
 
+  
+
   // Function to fetch both documents and files
   const fetchDocumentsAndFiles = (dept, fetchUserId) => {
     let noDocuments = false;
@@ -83,31 +85,34 @@ const DocumentRepositoryPage = () => {
         console.error("Error fetching documents:", err);
       });
 
-    // Fetch files
-    axios
-      .get(
-        `${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`
-      )
-      .then((res) => {
-        if (res.data.files.length === 0) {
-          noFiles = true;
-        }
-        setFiles(res.data.files);
-        console.log("Files fetched:", res.data.files); // Debugging
-      })
-      .catch((err) => {
-        noFiles = true;
-        console.error("Error fetching files:", err);
-      });
+  // Fetch files
+axios
+.get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`)
+.then((res) => {
+  if (res.data.success) {
+    setFiles(
+      res.data.files.map((file) => ({
+        ...file,
+        filePath: `http://localhost:5001/uploads/${file.filePath}`, // Adjust file path
+      }))
+    );
+    console.log("Files fetched:", res.data.files);
+  } else {
+    console.error("No files found or error in response", res.data.message);
+  }
+})
+.catch((err) => {
+  console.error("Error fetching files:", err.response ? err.response.data : err.message);
+});
 
-    // Handle empty repository
-    if (noDocuments && noFiles) {
-      setErrorMessage("Repository empty.");
-    } else {
-      setErrorMessage(null);
-    }
-  };
 
+// Handle empty repository
+if (noDocuments && noFiles) {
+  setErrorMessage("Repository empty.");
+} else {
+  setErrorMessage(null);
+}
+};
   const deleteDocument = (id) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       axios
@@ -134,42 +139,27 @@ const DocumentRepositoryPage = () => {
   const deleteFile = (id) => {
     if (window.confirm("Are you sure you want to delete this file?")) {
       axios
-        .delete(`${fileBackendUrl}/deleteFile/${id}`) // Send ID in URL
+        .delete(`${fileBackendUrl}/deleteFile/${id}`)
         .then((res) => {
           if (res.data.success) {
-            alert(res.data.message);
-            // Refresh file list after deletion
-            axios
-              .get(
-                `${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`
-              )
-              .then((res) => {
-                setFiles(res.data.files); // Update the state with new file list
-              })
-              .catch(() => {
-                console.error("Error fetching files.");
-                setFiles([]);
-              });
-          } else {
-            alert(res.data.message);
+            setFiles(files.filter((file) => file._id !== id)); // Remove from state
           }
         })
-        .catch(() => {
-          alert("Failed to delete file.");
+        .catch((err) => {
+          console.error("Error deleting file:", err);
         });
     }
   };
+  
 
   const handleViewClick = (file) => {
-    if (!file || !file._id) {
-      console.error("Invalid file object:", file);
+    if (!file?._id) {
+      alert("Invalid file selected.");
       return;
     }
-    const pdfUrl = `http://localhost:5001/api/file/view/${file._id}`;
-    console.log("Opening file:", pdfUrl);
-    window.open(pdfUrl, "_blank");
+    window.open(`http://localhost:5001/api/file/view/${file._id}`, "_blank");
   };
-
+  
   // Handle file selection
 
   // Handle file upload

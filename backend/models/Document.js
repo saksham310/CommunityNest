@@ -12,7 +12,7 @@ const documentSchema = new mongoose.Schema(
       required: true 
     },
     userId: { 
-      type: mongoose.Schema.Types.ObjectId, // Reference to the User model
+      type: mongoose.Schema.Types.ObjectId, // Reference to the User model (Original creator)
       ref: "users", 
       required: true 
     },
@@ -20,6 +20,11 @@ const documentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId, // Reference to the Department model
       ref: "Department", 
       required: true 
+    },
+    lastEditedBy: { 
+      type: mongoose.Schema.Types.ObjectId, // Store the last editor's user ID
+      ref: "users",
+      default: null 
     },
   },
   { timestamps: true } // Automatically adds createdAt and updatedAt fields

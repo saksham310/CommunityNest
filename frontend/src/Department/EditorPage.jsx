@@ -39,33 +39,42 @@ const EditorPage = () => {
     }
   }, [id]);
 
-  // Handle saving document changes
+  const editorConfig = {
+    readonly: false,
+    height: 600,
+    tabIndex: 0, // Ensure the editor is focusable
+    autofocus: false,
+  };
+
   const saveDocument = () => {
     if (!documentTitle.trim() || !editorContentRef.current.trim()) {
       alert("Title and content cannot be empty!");
       return;
     }
-
-    const method = isEditing ? "PUT" : "POST";
-    const endpoint = isEditing ? "/editDocument" : "/createDocument";
-
+  
+    const userId = localStorage.getItem("userId");
+  
+    if (!userId) {
+      alert("User ID not found. Please log in again.");
+      return;
+    }
+  
     const payload = {
       title: documentTitle,
-      content: editorContentRef.current, // Use content from ref
-      userId: localStorage.getItem("userId"),
+      content: editorContentRef.current, // Ensure content is properly captured
       department,
-      ...(isEditing && { id }),
+      ...(isEditing ? { id, userId } : { userId }), // Ensure `id` is sent when editing
     };
-
+  
+    console.log("Sending payload:", payload); // Debugging
+  
     setLoading(true);
     setError("");
-
-    axios({
-      method,
-      url: `${backendUrl}${endpoint}`,
-      data: payload,
-    })
+  
+    axios
+      .put(`${backendUrl}/editDocument`, payload) // Using PUT for updates
       .then((res) => {
+        console.log("Server response:", res.data);
         if (res.data.success) {
           alert(res.data.message);
           navigate(`/department/${department}/documents`);
@@ -79,13 +88,7 @@ const EditorPage = () => {
         setLoading(false);
       });
   };
-
-  const editorConfig = {
-    readonly: false,
-    height: 400,
-    tabIndex: 0, // Ensure the editor is focusable
-    autofocus: false,
-  };
+  
 
   return (
     <div className="document-repository-page">

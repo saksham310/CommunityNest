@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./Modal.css";
 import Sidebar from "../Sidebar/sidebar.jsx";
-import { jsPDF } from "jspdf";
+import html2pdf from "html2pdf.js";
 
 const Modal = () => {
   const { id } = useParams(); // Get document ID from URL
   const [docData, setDocData] = useState(null);
+  const contentRef = useRef(null); // Reference for content to convert to PDF
   const backendUrl = "http://localhost:5001/api/document";
 
   useEffect(() => {
@@ -15,7 +16,7 @@ const Modal = () => {
       axios
         .get(`${backendUrl}/getDocumentById/${id}`)
         .then((res) => {
-          console.log("Fetched document:", res.data); // Debugging log
+          console.log("Fetched document:", res.data);
           setDocData(res.data.document || res.data); // Adjust based on API structure
         })
         .catch((err) => {
@@ -27,26 +28,35 @@ const Modal = () => {
   const downloadFile = (type) => {
     if (!docData || !docData.content) return;
 
-    const stripHtmlTags = (html) => {
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
-      return tempDiv.textContent || tempDiv.innerText || "No content available";
-    };
+    if (type === "pdf") {
+      const element = contentRef.current; // Get the content to download as PDF
+      const opt = {
+        margin: 1,
+        filename: `${docData.title || "document"}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
+      };
 
-    const fileContent = stripHtmlTags(docData.content);
+      html2pdf().from(element).set(opt).save(); // Convert and download as PDF
+    } else if (type === "doc") {
+      const fileContent = `<!DOCTYPE html>
+      <html xmlns:o='urn:schemas-microsoft-com:office:office'
+      xmlns:w='urn:schemas-microsoft-com:office:word'
+      xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset='UTF-8'></head>
+      <body>${docData.content}</body>
+      </html>`;
 
-    if (type === "doc") {
-      const file = new Blob([fileContent], { type: "application/msword" });
-      const element = document.createElement("a");
-      element.href = URL.createObjectURL(file);
-      element.download = `${docData.title || "document"}.doc`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    } else if (type === "pdf") {
-      const doc = new jsPDF();
-      doc.text(fileContent, 10, 10);
-      doc.save(`${docData.title || "document"}.pdf`);
+      const blob = new Blob(["\ufeff", fileContent], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${docData.title || "document"}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
   };
 
@@ -56,7 +66,7 @@ const Modal = () => {
     <div className="document-view">
       <Sidebar />
       <h2>{docData.title}</h2>
-      <div className="document-content">
+      <div className="document-content" ref={contentRef}>
         {docData.content ? (
           <div dangerouslySetInnerHTML={{ __html: docData.content }}></div>
         ) : (
