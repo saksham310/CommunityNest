@@ -1,0 +1,154 @@
+/* General Styles */
+.events-page {
+    display: flex;
+    margin-top: -80px;
+  }
+  
+  .events-content {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  .create-event-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 10px 0;
+    cursor: pointer;
+  }
+  
+  .create-event-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Event List */
+  /* Grid layout for event cards */
+  .event-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+    gap: 10px; /* Space between cards */
+    margin-top: 20px;
+}
+
+
+/* Updated Event Card */
+/* Updated Event Card */
+.event-card {
+    display: flex;
+    flex-direction: column; /* Stack elements vertically */
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    background: #fff;
+    text-align: center;
+    position: relative; /* To position the delete button */
+}
+
+/* Event Image */
+.event-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* Event Info */
+.event-info {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.event-info h3 {
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+.event-info p {
+    margin: 5px 0;
+    color: gray;
+    margin-top: -10px;
+}
+
+/* Positioning Delete Button */
+.event-card button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgb(0, 123, 255);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+ 
+
+  /* Modal Styles */
+.modal {
+    position: fixed; /* Ensures it stays above other elements */
+    top: 20%;
+    left: 35%;
+
+    height: 500px; /* Full viewport height */
+    background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000; /* Ensures it appears above other elements */
+}
+
+/* Modal content (form container) */
+.modal-content {
+    background:transparent;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 400px; /* Adjust width as needed */
+    max-width: 90%;
+    z-index: 1001; /* Higher than modal background */
+}
+
+/* Inputs inside modal */
+.modal-content input {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px;
+}
+
+/* Buttons inside modal */
+/* Button container to align buttons in a row */
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* Space between buttons */
+    margin-top: 10px;
+}
+
+/* Ensure buttons are styled properly */
+.modal-content button {
+    padding: 8px 12px;
+    width: 150px;
+    cursor: pointer;
+    flex: 1; /* Make both buttons equal width */
+    max-width: 120px; /* Set a max width to avoid stretching */
+}
+
+/* Green Post Event button */
+.modal-content button:first-of-type {
+    background: #28a745;
+    color: white;
+    border: none;
+}
+
+/* Red Cancel button */
+.modal-content button:last-of-type {
+    background: red;
+    color: white;
+    border: none;
+}

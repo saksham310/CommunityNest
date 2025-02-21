@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const cors = require("cors");
+const cors = require("cors");  // Only declare cors once
 const helmet = require("helmet");  // Import helmet for security
 const authRoutes = require("./routes/auth");
 const documentRoutes = require("./routes/documents");
@@ -11,11 +11,15 @@ const meetingRoutes = require("./routes/meeting");
 const session = require('express-session');
 const MongoStore = require("connect-mongo");
 const communityRoutes = require("./routes/community");
+const eventRoutes = require("./routes/events"); // Import event routes
 
 dotenv.config();
 
 const app = express();
+const path = require("path");
 
+
+// Other middlewares like session, json parsing, and helmet
 app.use(session({
   secret: 'your-secret-key',
   resave: false,
@@ -26,14 +30,12 @@ app.use(session({
   cookie: { secure: false, httpOnly: true },  // secure: true for HTTPS
 }));
 
-
-
-// Middleware
 app.use(express.json());
 app.use(cors({
   origin: "http://localhost:3000",  // Allow requests from your frontend
   credentials: true,  // Allow session cookies
 }));
+
 // Middleware for Content Security Policy (CSP)
 app.use(
   helmet({
@@ -61,6 +63,9 @@ app.use(
   })
 );
 
+// Middleware to serve static files (uploaded images)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Database connection
 mongoose
   .connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -74,6 +79,8 @@ app.use("/api/department", departmentRoutes);
 app.use("/api/file", files);
 app.use("/api/meeting", meetingRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/events", eventRoutes); // API route for events
+
 // Start server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

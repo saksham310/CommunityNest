@@ -149,8 +149,56 @@ const ScheduleMeetingForm = () => {
 
   const handleEdit = (eventId) => {
     const eventToEdit = events.find((event) => event.id === eventId);
-    setCurrentEvent(eventToEdit);
+
+    if (!eventToEdit) return;
+
+    setCurrentEvent({
+      ...eventToEdit,
+      start: eventToEdit.start?.dateTime?.slice(0, 16) || "",
+      end: eventToEdit.end?.dateTime?.slice(0, 16) || "",
+      attendees: eventToEdit.attendees
+        ? eventToEdit.attendees.map((attendee) => attendee.email).join(", ")
+        : "",
+    });
+
     setEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    // Update the event on the server or perform the necessary actions
+    console.log("Updated Event:", currentEvent);
+
+    try {
+      const response = await fetch(
+        `http://localhost:5001/api/meeting/update_meeting/${currentEvent.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(currentEvent),
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+        alert("Event updated successfully!");
+        setEditModalVisible(false);
+        fetchEvents(); // Re-fetch events to display updated data
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Error updating event:", error);
+      alert("Something went wrong. Please try again.");
+    }
+  };
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentEvent((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleDelete = async (eventId) => {
@@ -253,20 +301,78 @@ const ScheduleMeetingForm = () => {
                         } // Allow manual edits
                         required
                       />
+                      <div className="button-group">
+                        <button type="submit">Schedule</button>
+                        <button
+                          className="close-modal-button"
+                          onClick={() => setScheduleModalVisible(false)}
+                          type="button" // Make sure this doesn't trigger the form submission
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </form>
-                    <div className="button-group">
-                      <button type="submit">Schedule Meeting</button>
-                      <button
-                        className="close-modal-button"
-                        onClick={() => setScheduleModalVisible(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
             </>
+          )}
+          {editModalVisible && (
+            <div className="modal">
+              <div className="modal-content">
+                <h2>Edit Event</h2>
+                <form onSubmit={handleEditSubmit}>
+                  <input
+                    type="text"
+                    name="summary"
+                    placeholder="Event Title"
+                    value={currentEvent?.summary || ""}
+                    onChange={handleEditChange}
+                    required
+                  />
+                  <textarea
+                    name="description"
+                    placeholder="Event Description"
+                    value={currentEvent?.description || ""}
+                    onChange={handleEditChange}
+                    required
+                  />
+                  <input
+                    type="datetime-local"
+                    name="start"
+                    value={currentEvent?.start || ""}
+                    onChange={handleEditChange}
+                    required
+                  />
+                  <input
+                    type="datetime-local"
+                    name="end"
+                    value={currentEvent?.end || ""}
+                    onChange={handleEditChange}
+                    required
+                  />
+
+                  <input
+                    type="text"
+                    name="attendees"
+                    value={currentEvent?.attendees || ""}
+                    placeholder="Attendees (comma-separated emails)"
+                    onChange={handleEditChange}
+                    required
+                  />
+                  <div className="button-group">
+                    <button type="submit">Save Changes</button>
+                    <button
+                      className="close-modal-button"
+                      onClick={() => setEditModalVisible(false)}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
 
           {/* Meeting Cards List */}
