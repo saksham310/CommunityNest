@@ -34,6 +34,8 @@ const Login = () => {
 
       // Store token and user data in localStorage
       localStorage.setItem('token', response.data.token);
+      // console.log("Stored Token:", localStorage.getItem("token"));
+
       localStorage.setItem('userId', response.data.userId);
       
       // Store the username and email in localStorage

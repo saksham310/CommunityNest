@@ -6,21 +6,51 @@ import "./event.css";
 const Events = () => {
   const [showModal, setShowModal] = useState(false);
   const [events, setEvents] = useState([]);
+  const [editModal, setEditModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
   const [eventData, setEventData] = useState({
     title: "",
     date: "",
+    time: "",
     image: null,
   });
   const [loading, setLoading] = useState(false);
 
+  const [userStatus, setUserStatus] = useState(null); // Track user status
+
   useEffect(() => {
     fetchEvents();
+    fetchUserStatus(); // Fetch user status on component mount
   }, []);
+
+  const fetchUserStatus = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:5001/api/auth/data", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      setUserStatus(response.data.status); // Set the user status to "member" or "community"
+    } catch (error) {
+      console.error("Error fetching user status:", error);
+    }
+  };
+
+  const openEditModal = (event) => {
+    setSelectedEvent(event);
+    setEditModal(true);
+  };
 
   const fetchEvents = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/events");
-      setEvents(res.data);
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get("http://localhost:5001/api/events", {
+        headers: { Authorization: `Bearer ${token}` }, // Send token
+      });
+
+      setEvents(res.data.events); // Update state with events
     } catch (error) {
       console.error("Error fetching events:", error);
     }
@@ -38,7 +68,12 @@ const Events = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!eventData.title || !eventData.date || !eventData.image) {
+    if (
+      !eventData.title ||
+      !eventData.date ||
+      !eventData.time ||
+      !eventData.image
+    ) {
       alert("Please fill all fields and upload an image.");
       return;
     }
@@ -46,21 +81,27 @@ const Events = () => {
     const formData = new FormData();
     formData.append("title", eventData.title);
     formData.append("date", eventData.date);
-    formData.append("image", eventData.image); // Send image here
+    formData.append("time", eventData.time); // Include time
+    formData.append("image", eventData.image);
 
     try {
+      const token = localStorage.getItem("token");
+
       await axios.post("http://localhost:5001/api/events", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
         },
       });
+
       fetchEvents();
       setShowModal(false);
-      setEventData({ title: "", date: "", image: null });
+      setEventData({ title: "", date: "", time: "", image: null });
     } catch (error) {
       console.error("Error creating event:", error);
     }
   };
+
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this event?"
@@ -76,14 +117,37 @@ const Events = () => {
     }
   };
 
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5001/api/events/${selectedEvent._id}`,
+        selectedEvent,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      fetchEvents(); // Refresh event list
+      setEditModal(false);
+    } catch (error) {
+      console.error("Error updating event:", error);
+    }
+  };
+
   return (
     <div className="events-page">
       <Sidebar />
       <div className="events-content">
-        <h1>Events Management</h1>
-        <button className="create-event-btn" onClick={() => setShowModal(true)}>
-          Create Event
-        </button>
+        <h1>Events</h1>
+        {/* Conditionally render the "Create Event" button */}
+        {userStatus === "community" && (
+          <button className="create-event-btn" onClick={() => setShowModal(true)}>
+            Create Event
+          </button>
+        )}
 
         <div className="event-list">
           {events.length === 0 ? (
@@ -96,13 +160,31 @@ const Events = () => {
                   alt={event.title}
                   className="event-image"
                 />
+          
                 <div className="event-info">
                   <h3>{event.title}</h3>
-                  <p>{event.date}</p>
-                  <button onClick={() => handleDelete(event._id)}>
-                    Delete
-                  </button>{" "}
-                  {/* Delete button */}
+                  <p>Date: {event.date}</p>
+                  <p>Time: {event.time}</p>
+
+                  {/* Button container with conditional rendering for edit and delete */}
+                  <div className="event-actions">
+                    {userStatus === "community" && (
+                      <>
+                        <button
+                          className="edit-btn"
+                          onClick={() => openEditModal(event)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete(event._id)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -110,6 +192,7 @@ const Events = () => {
         </div>
       </div>
 
+      {/* Modal for creating event */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
@@ -131,6 +214,14 @@ const Events = () => {
                 required
               />
               <input
+                type="time"
+                name="time"
+                value={eventData.time}
+                onChange={handleChange}
+                required
+              />
+
+              <input
                 type="file"
                 name="image"
                 accept="image/*"
@@ -142,6 +233,50 @@ const Events = () => {
                   {loading ? "Uploading Image..." : "Post Event"}
                 </button>
                 <button type="button" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editModal && selectedEvent && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Edit Event</h2>
+            <form onSubmit={handleEditSubmit}>
+              <input
+                type="text"
+                name="title"
+                placeholder="Event Title"
+                value={selectedEvent.title}
+                onChange={(e) =>
+                  setSelectedEvent({ ...selectedEvent, title: e.target.value })
+                }
+                required
+              />
+              <input
+                type="date"
+                name="date"
+                value={selectedEvent.date}
+                onChange={(e) =>
+                  setSelectedEvent({ ...selectedEvent, date: e.target.value })
+                }
+                required
+              />
+              <input
+                type="time"
+                name="time"
+                value={selectedEvent.time}
+                onChange={(e) =>
+                  setSelectedEvent({ ...selectedEvent, time: e.target.value })
+                }
+                required
+              />
+              <div className="modal-buttons">
+                <button type="submit">Save Changes</button>
+                <button type="button" onClick={() => setEditModal(false)}>
                   Cancel
                 </button>
               </div>

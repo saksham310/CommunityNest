@@ -3,6 +3,8 @@ const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const dotenv = require("dotenv");
 const Event = require("../models/Event");
+const authenticate = require("./authenticate")
+const User = require('../models/User');
 
 dotenv.config();
 
@@ -18,50 +20,70 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Create an Event
-router.post("/", upload.single("image"), async (req, res) => {
+// Create an Event (Requires Authentication)
+router.post("/", authenticate, upload.single("image"), async (req, res) => {
   try {
-    const { title, date } = req.body;
-    if (!title || !date || !req.file) {
-      return res.status(400).json({ error: "All fields and image are required." });
+    const { title, date, time } = req.body;
+
+    if (!title || !date || !time || !req.file) {
+      return res.status(400).json({ success: false, message: "All fields and image are required." });
     }
 
-    // Upload image to Cloudinary
     cloudinary.uploader.upload_stream({ folder: "events" }, async (error, result) => {
       if (error) {
-        console.error("Cloudinary error:", error);
-        return res.status(500).json({ error: "Error uploading image to Cloudinary" });
+        return res.status(500).json({ success: false, message: "Error uploading image to Cloudinary" });
       }
 
-      // Save event details to the database
       const newEvent = new Event({
         title,
         date,
-        image: result.secure_url, // Store the Cloudinary URL
+        time, // Store time
+        image: result.secure_url,
+        createdBy: req.userId,
       });
 
       await newEvent.save();
-      res.status(201).json(newEvent);
+      res.status(201).json({ success: true, event: newEvent });
     }).end(req.file.buffer);
   } catch (error) {
-    console.error("Internal server error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+router.get("/", authenticate, async (req, res) => {
+  try {
+    let events;
+
+    // Fetch the user based on the userId
+    const user = await User.findById(req.userId).select('status communityDetails');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if the logged-in user is a member
+    if (user.status === 'member') {
+      // If the user is a member, fetch events by the adminId from the communityDetails
+      const adminId = user.communityDetails[0]?.adminId;
+
+      if (!adminId) {
+        return res.status(400).json({ success: false, message: "Admin ID not found in community details." });
+      }
+
+      // Fetch events where the createdBy is the adminId of the community
+      events = await Event.find({ createdBy: adminId });
+    } else {
+      // If the user is not a member, fetch events created by the user themselves
+      events = await Event.find({ createdBy: req.userId });
+    }
+
+    res.json({ success: true, events });
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
-// Fetch All Events
-router.get("/", async (req, res) => {
-    try {
-      const events = await Event.find();
-      if (!events) {
-        return res.status(404).json({ error: "No events found" });
-      }
-      res.json(events);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
+
   
   router.delete("/:id", async (req, res) => {
     try {
@@ -86,6 +108,25 @@ router.get("/", async (req, res) => {
     } catch (error) {
       console.error("Error deleting event:", error);
       res.status(500).json({ error: "Error deleting event" });
+    }
+  });
+  
+  router.put("/:id", authenticate, async (req, res) => {
+    try {
+      const { title, date, time } = req.body;
+      const updatedEvent = await Event.findByIdAndUpdate(
+        req.params.id,
+        { title, date, time },
+        { new: true }
+      );
+  
+      if (!updatedEvent) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+  
+      res.json({ success: true, event: updatedEvent });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Internal Server Error" });
     }
   });
   
