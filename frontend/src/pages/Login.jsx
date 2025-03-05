@@ -16,34 +16,35 @@ const Login = () => {
   const [recaptchaToken, setRecaptchaToken] = useState('');
 
   const onChange = (value) => {
-    setRecaptchaToken(value);
+    setRecaptchaToken(value); // Store the reCAPTCHA token
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true); // Show loading indicator during login
 
+    if (!recaptchaToken) {
+      setError('Please complete the CAPTCHA.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post('http://localhost:5001/api/auth/login', {
         email,
         password,
+        recaptchaToken, // Send reCAPTCHA token to the server
       });
 
       console.log('Login successful:', response.data);
 
       // Store token and user data in localStorage
       localStorage.setItem('token', response.data.token);
-      // console.log("Stored Token:", localStorage.getItem("token"));
-
       localStorage.setItem('userId', response.data.userId);
-      
-      // Store the username and email in localStorage
       localStorage.setItem('username', response.data.username);
       localStorage.setItem('email', response.data.email);
-
       localStorage.setItem("status", response.data.status); // Assuming status is available in the response
-
 
       // Fetch user data after login
       await fetchUserData(response.data.token);
@@ -59,9 +60,7 @@ const Login = () => {
     } finally {
       setLoading(false); // Hide loading indicator after login attempt
     }
-};
-
-  
+  };
 
   // Fetch user data after login
   const fetchUserData = async (token) => {
@@ -88,7 +87,6 @@ const Login = () => {
     navigate('/forgot-password');
   };
 
-
   return (
     <div className="Login">
       <h2>Login</h2>
@@ -110,7 +108,7 @@ const Login = () => {
         {error && <p className="Error">{error}</p>} {/* Display error if present */}
 
         <div className="recaptcha">
-        <ReCAPTCHA sitekey={SITE_KEY} onChange={onChange} />
+          <ReCAPTCHA sitekey={SITE_KEY} onChange={onChange} />
         </div>
 
         <button

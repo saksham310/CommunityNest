@@ -46,6 +46,11 @@ const Header = () => {
     localStorage.removeItem("userToken");
     localStorage.removeItem("username");
     localStorage.removeItem("email");
+    localStorage.removeItem('userId');
+    localStorage.removeItem('status');
+    localStorage.removeItem('token');
+    localStorage.removeItem('authenticated');
+    localStorage.removeItem('googleAuthToken');
     setUser({ username: "Guest", email: "Not Available" });
     navigate("/login");
     setShowDropdown(false);

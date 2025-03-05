@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import "./event.css";
+import { useNavigate } from "react-router-dom";
 
 const Events = () => {
   const [showModal, setShowModal] = useState(false);
@@ -16,6 +17,13 @@ const Events = () => {
     image: null,
   });
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+  
+  const handleEventClick = (eventId) => {
+    navigate(`/event/${eventId}`);
+  };
+  
 
   const [userStatus, setUserStatus] = useState(null); // Track user status
 
@@ -154,7 +162,7 @@ const Events = () => {
             <p>No events scheduled yet.</p>
           ) : (
             events.map((event, index) => (
-              <div className="event-card" key={index}>
+              <div className="event-card" key={event._id} onClick={() => handleEventClick(event._id)}>
                 <img
                   src={event.image}
                   alt={event.title}

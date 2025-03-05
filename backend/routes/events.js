@@ -1,20 +1,23 @@
 const express = require("express");
+
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const dotenv = require("dotenv");
 const Event = require("../models/Event");
-const authenticate = require("./authenticate")
+const authenticate = require("./authenticate");
 const User = require('../models/User');
+const nodemailer = require("nodemailer");
+
+const router = express.Router();
 
 dotenv.config();
 
+//for image 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET,
 });
-
-const router = express.Router();
 
 // Multer setup for file uploads (storing in memory)
 const storage = multer.memoryStorage();
@@ -49,6 +52,7 @@ router.post("/", authenticate, upload.single("image"), async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 router.get("/", authenticate, async (req, res) => {
   try {
     let events;
@@ -83,52 +87,64 @@ router.get("/", authenticate, async (req, res) => {
   }
 });
 
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const event = await Event.findById(id);
 
-  
-  router.delete("/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const event = await Event.findById(id);
-  
-      if (!event) {
-        return res.status(404).json({ error: "Event not found" });
-      }
-  
-      // Extract Cloudinary public_id from image URL
-      const imageUrl = event.image;
-      const publicId = imageUrl.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
-  
-      // Delete image from Cloudinary
-      await cloudinary.uploader.destroy(`events/${publicId}`);
-  
-      // Delete event from MongoDB
-      await Event.findByIdAndDelete(id);
-  
-      res.json({ message: "Event and image deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      res.status(500).json({ error: "Error deleting event" });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
     }
-  });
-  
-  router.put("/:id", authenticate, async (req, res) => {
-    try {
-      const { title, date, time } = req.body;
-      const updatedEvent = await Event.findByIdAndUpdate(
-        req.params.id,
-        { title, date, time },
-        { new: true }
-      );
-  
-      if (!updatedEvent) {
-        return res.status(404).json({ success: false, message: "Event not found" });
-      }
-  
-      res.json({ success: true, event: updatedEvent });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Internal Server Error" });
+
+    // Extract Cloudinary public_id from image URL
+    const imageUrl = event.image;
+    const publicId = imageUrl.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
+
+    // Delete image from Cloudinary
+    await cloudinary.uploader.destroy(`events/${publicId}`);
+
+    // Delete event from MongoDB
+    await Event.findByIdAndDelete(id);
+
+    res.json({ message: "Event and image deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    res.status(500).json({ error: "Error deleting event" });
+  }
+});
+
+router.put("/:id", authenticate, async (req, res) => {
+  try {
+    const { title, date, time } = req.body;
+    const updatedEvent = await Event.findByIdAndUpdate(
+      req.params.id,
+      { title, date, time },
+      { new: true }
+    );
+
+    if (!updatedEvent) {
+      return res.status(404).json({ success: false, message: "Event not found" });
     }
-  });
-  
+
+    res.json({ success: true, event: updatedEvent });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+router.get("/:id/title", async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id).select("title"); // Only fetch the title
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+
+    res.json({ title: event.title }); // Send only the title
+  } catch (error) {
+    console.error("Error fetching event title:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 module.exports = router;

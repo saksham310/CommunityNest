@@ -59,12 +59,14 @@ router.get("/google/redirect", async (req, res) => {
 
         console.log("Authenticated successfully, tokens saved in session");
 
-        res.redirect("http://localhost:3000/meeting?auth=success");
+        // Redirect to frontend with the token in the query string
+        res.redirect(`http://localhost:3000/meeting?auth=success&googleAuthToken=${tokens.access_token}`);
     } catch (error) {
         console.error("Error authenticating:", error);
         res.redirect("http://localhost:3000/meeting?auth=failure");
     }
 });
+
 
 // Middleware to check authentication
 const ensureAuthenticated = (req, res, next) => {
@@ -72,8 +74,23 @@ const ensureAuthenticated = (req, res, next) => {
         return res.status(401).json({ error: "Unauthorized. Please authenticate first." });
     }
     oauth2Client.setCredentials(req.session.userTokens);
-    next();
+
+    // Handle token expiration
+    if (oauth2Client.credentials.expiry_date <= Date.now()) {
+        oauth2Client.refreshAccessToken((err, tokens) => {
+            if (err) {
+                return res.status(500).json({ error: "Failed to refresh token" });
+            }
+            req.session.userTokens = tokens;
+            req.session.save();
+            oauth2Client.setCredentials(tokens);
+            next();
+        });
+    } else {
+        next();
+    }
 };
+
 
 // Schedule a meeting using the Google Calendar API
 router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
@@ -123,6 +140,7 @@ router.get('/events', ensureAuthenticated, async (req, res) => {
             singleEvents: true,
             orderBy: 'startTime',
         });
+        
 
         res.json({ events: response.data.items });
     } catch (error) {

@@ -21,13 +21,43 @@ const ScheduleMeetingForm = () => {
 
   const [memberEmails, setMemberEmails] = useState([]);
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("auth") === "success") {
-      setAuthenticated(true);
-      fetchEvents();
+useEffect(() => {
+  const authStatus = localStorage.getItem("authenticated");
+  if (authStatus === "true") {
+    setAuthenticated(true);
+    fetchEvents();
+  } else {
+    setAuthenticated(false);
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("auth") === "success") {
+    setAuthenticated(true);
+
+    // Assuming the Google authentication token is received in the URL params or in the response
+    const googleAuthToken = urlParams.get("googleAuthToken"); // Replace with actual token extraction method
+
+    // Store the token in localStorage
+    if (googleAuthToken) {
+      localStorage.setItem("googleAuthToken", googleAuthToken); // Store the googleAuthToken
+      
     }
-  }, []);
+
+    // Persist the login state
+    localStorage.setItem("authenticated", "true");
+    localStorage.setItem("googleAuthToken", googleAuthToken); // Store the googleAuthToken
+
+    fetchEvents();
+  }
+
+  // After redirection from Google auth, check for the googleAuthToken in localStorage
+  const token = localStorage.getItem("googleAuthToken");  // Retrieve the token from localStorage
+  if (token) {
+    setAuthenticated(true);
+    fetchEvents();  // Fetch events after successful authentication
+  }
+}, []);
+
 
   const fetchMemberEmails = async () => {
     try {

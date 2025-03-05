@@ -1,0 +1,102 @@
+.event-details-container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  max-width: 1300px;
+  margin: 0 auto;
+  margin-left: 270px;
+  height: 100vh; /* Ensures it doesn't exceed the viewport height */
+  overflow: hidden; /* Prevents scrolling */
+}
+
+.event-content {
+  display: flex;
+  gap: 20px;
+  flex-grow: 1;
+  max-height: calc(100vh - 150px); /* Adjust based on header and nav height */
+}
+
+/* Event Title */
+.event-title {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  margin: 50px 0 10px 0;
+  margin-top: 85px;
+}
+
+/* Navigation Bar */
+
+
+.event-nav button {
+  background: none;
+  border: none;
+  color: rgb(35, 35, 35);
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 10px 20px;
+  transition: 0.3s;
+  width: 250px;
+}
+
+.event-nav button:hover {
+  background-color: #fcfcfc;
+}
+
+.event-nav button.active {
+  color: #007bff;
+  border-bottom: 3px solid #007bff;
+}
+
+/* Main Event Section */
+.event-main {
+  flex: 3;
+  padding: 20px;
+
+  overflow-y: hidden; /* Allows internal scrolling */
+  max-height: calc(100vh - 200px); /* Adjust based on layout */
+}
+
+/* Event Image */
+.event-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+
+/* Registration Section */
+.registration-section {
+  width: 100%;
+  overflow: hidden; /* Prevents scrolling on the parent container */
+  margin-top: -40px;
+}
+
+/* Make the table container scrollable */
+.table-container {
+  max-height: 400px; /* Set a height limit for vertical scrolling */
+  overflow: auto; /* Enables both horizontal and vertical scrolling */
+  border: 1px solid #ddd; /* Optional: Adds border for clarity */
+}
+
+/* Ensure the table expands properly */
+.table-container table {
+  width: max-content; /* Expands based on content */
+  border-collapse: collapse;
+  min-width: 100%; /* Ensures it takes at least full container width */
+}
+
+/* Prevent text from wrapping and ensure scrolling */
+.table-container th,
+.table-container td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  white-space: nowrap; /* Keeps content in one line */
+}
+
+.table-container thead {
+  background-color: #f4f4f4;
+}

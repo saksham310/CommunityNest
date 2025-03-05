@@ -37,6 +37,7 @@
 
 .Forgot-password:hover {
   color: #388e3c; /* Slightly darker green for hover effect */
+  background-color: #ffffff;
 }
 
 /* Login Button */
