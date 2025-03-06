@@ -41,7 +41,7 @@ const EventDetails = () => {
   const handleFileUpload = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5001/api/google-sheets/fetch",
+        `${baseUrl}/google-sheets/fetch`,
         {
           method: "POST",
           headers: {
@@ -69,21 +69,46 @@ const EventDetails = () => {
     }
   };
 
-  const handleAttendanceUpdate = async (attendeeId, newStatus) => {
-    try {
-      await axios.put(
-        `${baseUrl}/events/${eventId}/attendees/${attendeeId}/update`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${googleAuthToken}`,
-          },
-        }
-      );
-    } catch (error) {
-      console.error("Error updating attendance:", error);
-    }
+  // Function to handle editing attendee data
+  const handleEdit = (attendeeId, columnName, newValue) => {
+    setAttendees(prevAttendees =>
+      prevAttendees.map((attendee, index) =>
+        index === attendeeId
+          ? { ...attendee, [columnName]: newValue }
+          : attendee
+      )
+    );
   };
+
+  const handleSaveChanges = async (attendeeId, columnName, newValue) => {
+    const columnIndex = columnHeaders.indexOf(columnName);
+    if (columnIndex === -1) {
+        console.error(`Column "${columnName}" not found in headers:`, columnHeaders);
+        return; // Stop execution if column doesn't exist
+    }
+
+    console.log('Sending update:', {
+        sheetUrl: googleSheetUrl,
+        rowIndex: attendeeId + 1, // Adjusted for Google Sheets' 1-based indexing
+        columnIndex, // Corrected column index
+        newValue,
+    });
+
+    try {
+        const response = await axios.put(`${baseUrl}/google-sheets/update`, {
+            sheetUrl: googleSheetUrl,
+            rowIndex: attendeeId + 1, // Adjusted for Google Sheets' 1-based indexing
+            columnIndex, // Corrected column index
+            newValue,
+        });
+
+        console.log("Successfully updated:", response.data);
+    } catch (error) {
+        console.error("Error updating Google Sheets:", error);
+    }
+};
+  
+  
 
   return (
     <div className="event-details-container">
@@ -138,17 +163,28 @@ const EventDetails = () => {
                         attendees.map((attendee, index) => (
                           <tr key={index}>
                             {columnHeaders.map((header, idx) => (
-                              <td key={idx}>{attendee[header]}</td> // Ensure each attendee object has the correct key for the column
+                              <td key={idx}>
+                                <input
+                                  type="text"
+                                  value={attendee[header]}
+                                  onChange={(e) =>
+                                    handleEdit(index, header, e.target.value)
+                                  }
+                                  onBlur={() =>
+                                    handleSaveChanges(index, header, attendee[header])
+                                  }
+                                />
+                              </td>
                             ))}
                             <td>
                               <select
                                 value={attendee.status} // Ensure 'status' is a valid property on each attendee
                                 onChange={(e) =>
-                                  handleAttendanceUpdate(index, e.target.value)
+                                  handleSaveChanges(index, "Status", e.target.value)
                                 }
                               >
-                                <option value="attended">Attended</option>
                                 <option value="absent">Absent</option>
+                                <option value="attended">Present</option>
                               </select>
                             </td>
                           </tr>

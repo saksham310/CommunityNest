@@ -45,7 +45,8 @@ const Events = () => {
     }
   };
 
-  const openEditModal = (event) => {
+  const openEditModal = (event, e) => {
+    e.stopPropagation();  // Prevents the click event from propagating and triggering navigation
     setSelectedEvent(event);
     setEditModal(true);
   };
@@ -180,7 +181,7 @@ const Events = () => {
                       <>
                         <button
                           className="edit-btn"
-                          onClick={() => openEditModal(event)}
+                          onClick={(e) => openEditModal(event, e)}  // Pass the click event
                         >
                           Edit
                         </button>

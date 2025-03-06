@@ -7,7 +7,7 @@ const router = express.Router();
 // Google Sheets Authentication
 const serviceAccountAuth = new JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Ensure correct key format
     scopes: ["https://www.googleapis.com/auth/spreadsheets"]
 });
 
@@ -71,6 +71,39 @@ router.post("/fetch", async (req, res) => {
 
   } catch (error) {
       console.error("Error accessing Google Sheets:", error.message, error.stack);
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// API Route to update Google Sheets data
+router.put("/update", async (req, res) => {
+  const { sheetUrl, rowIndex, columnIndex, newValue } = req.body;
+
+  if (!sheetUrl || rowIndex === undefined || columnIndex === undefined || newValue === undefined) {
+      return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+      const sheetId = extractSheetId(sheetUrl);
+      if (!sheetId) {
+          return res.status(400).json({ error: "Invalid Google Sheet URL" });
+      }
+
+      const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
+      await doc.loadInfo();
+
+      const sheet = doc.sheetsByIndex[0];
+      await sheet.loadCells(); // Load all cells in the sheet
+
+      // Get the cell to update (1-based indexing for rows and columns)
+      const cell = sheet.getCell(rowIndex, columnIndex);
+      cell.value = newValue; // Update the cell value
+
+      await sheet.saveUpdatedCells(); // Save the updated cells
+
+      res.json({ success: true, message: "Cell updated successfully" });
+  } catch (error) {
+      console.error("Error updating Google Sheets:", error.message, error.stack);
       res.status(500).json({ error: error.message });
   }
 });
