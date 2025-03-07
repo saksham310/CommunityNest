@@ -1,6 +1,7 @@
 const express = require("express");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const { JWT } = require("google-auth-library");
+const Event = require("../models/Event"); // Assuming you have an Event model
 
 const router = express.Router();
 
@@ -108,5 +109,74 @@ router.put("/update", async (req, res) => {
   }
 });
 
+
+// Save Google Sheet information to the event
+router.post("/:eventId/save-sheet", async (req, res) => {
+  const { eventId } = req.params;
+  const { sheetUrl, sheetTitle } = req.body;
+
+  if (!sheetUrl || !sheetTitle) {
+    return res.status(400).json({ success: false, error: "Sheet URL and title are required" });
+  }
+
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ success: false, error: "Event not found" });
+    }
+
+    // Append the new Google Sheet to the array
+    event.googleSheets.push({ url: sheetUrl, title: sheetTitle });
+    await event.save();
+
+    res.json({ success: true, message: "Google Sheet information saved" });
+  } catch (error) {
+    console.error("Error saving Google Sheet information:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+// Fetch Google Sheet information for the event
+router.get("/:eventId/sheet-info", async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ success: false, error: "Event not found" });
+    }
+
+    res.json({ success: true, googleSheets: event.googleSheets });
+  } catch (error) {
+    console.error("Error fetching Google Sheet information:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+// Delete a Google Sheet from the event
+router.delete("/:eventId/delete-sheet", async (req, res) => {
+  const { eventId } = req.params;
+  const { sheetUrl } = req.body;
+
+  if (!sheetUrl) {
+    return res.status(400).json({ success: false, error: "Sheet URL is required" });
+  }
+
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ success: false, error: "Event not found" });
+    }
+
+    // Remove the sheet from the array
+    event.googleSheets = event.googleSheets.filter((sheet) => sheet.url !== sheetUrl);
+    await event.save();
+
+    res.json({ success: true, message: "Google Sheet deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting Google Sheet:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
 
 module.exports = router;

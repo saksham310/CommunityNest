@@ -26,8 +26,6 @@
 }
 
 /* Navigation Bar */
-
-
 .event-nav button {
   background: none;
   border: none;
@@ -53,33 +51,26 @@
 .event-main {
   flex: 3;
   padding: 20px;
-
   overflow-y: hidden; /* Allows internal scrolling */
   max-height: calc(100vh - 200px); /* Adjust based on layout */
 }
 
-/* Event Image */
-.event-image {
-  width: 100%;
-  max-height: 300px;
-  object-fit: cover;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-
-
 /* Registration Section */
-.registration-section {
-  width: 100%;
-  overflow: hidden; /* Prevents scrolling on the parent container */
-  margin-top: -40px;
+.registration-section h3 {
+  display: flex;
+  justify-content: space-between; /* Space between heading and button */
+  align-items: center; /* Vertically center the items */
+  width: 100%; /* Ensure the container takes full width */
+  margin-top: -10px;
+}
+.upload-button-container {
+  margin-left: auto; /* Push the button to the right */
 }
 
 /* Make the table container scrollable */
 .table-container {
   max-height: 400px; /* Set a height limit for vertical scrolling */
   overflow: auto; /* Enables both horizontal and vertical scrolling */
-  border: 1px solid #ddd; /* Optional: Adds border for clarity */
 }
 
 /* Ensure the table expands properly */
@@ -99,4 +90,246 @@
 
 .table-container thead {
   background-color: #f4f4f4;
+}
+
+.sheet-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* Folder icon styling */
+.folder-icon {
+  font-size: 24px; /* Adjust size as needed */
+  color: #ffa500; /* Orange color for folder icon */
+  margin-right: 0px;
+}
+
+.sheet-card {
+  position: relative; /* Ensure the ellipsis menu is positioned relative to the card */
+  z-index: 1; /* Ensure the dropdown's parent has a higher z-index */
+  padding: 12px;
+  border-radius: 10px;
+  margin: 2px;
+  padding-top: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0px; /* Space between folder icon and sheet title */
+  background-color: #fcfcfc;
+  box-shadow: 0 2px 4px rgba(148, 148, 148, 0.1);
+  width: 200px; /* Set a fixed width for consistency */
+}
+
+.sheet-card:hover {
+  background-color:none; /* Change background on hover */
+}
+
+.sheet-title {
+  font-size: 16px;
+  font-weight: bold;
+  flex-grow: 1; /* Allow title to take remaining space */
+  margin: 0; /* Remove default margin for h3 */
+}
+
+.ellipsis-menu {
+  position: absolute; /* Position relative to the sheet card */
+  top: 5px; /* Adjust as needed */
+  right: 5px; /* Adjust as needed */
+  z-index: 1; /* Ensure it appears above other elements */
+}
+
+.ellipsis-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  color: #666; /* Gray color for ellipsis icon */
+  padding: 5px; /* Add padding for better clickability */
+  margin-top: -5px;
+  margin-right: -2px;
+}
+
+.ellipsis-icon:hover {
+  color: #007bff; /* Change color on hover */
+  background-color: transparent;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%; /* Position below the ellipsis icon */
+  background-color: #fff;
+  min-width: 120px;
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000; /* Ensure it appears above other elements */
+  border-radius: 4px;
+}
+
+.dropdown-content button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  margin-left: 5px;
+ 
+}
+.dropdown-content button:hover {
+  color: #007bff;
+}
+
+
+/* Show dropdown when openDropdownIndex matches */
+.ellipsis-menu .dropdown-content {
+  display: block;
+}
+
+.sheet-title-container {
+  display: flex;
+  justify-content: space-between; /* Space between title and button */
+  align-items: center; /* Vertically center the items */
+  width: 100%; /* Ensure the container takes full width */
+  padding: 10px 0; /* Optional: Add padding for better spacing */
+}
+
+.add-row-button {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Adds spacing between the icon and text */
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.add-row-button:hover {
+  background-color: #0056b3;
+}
+
+
+/* Popup Overlay */
+.upload-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it appears above other elements */
+}
+
+/* Popup Content */
+.upload-popup {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  max-width: 90%;
+}
+
+.upload-popup h3 {
+  margin-top: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.upload-popup input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.popup-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.popup-buttons button:first-child {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.popup-buttons button:first-child:hover {
+  background-color: #e0e0e0;
+}
+
+.popup-buttons button:last-child {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.popup-buttons button:last-child:hover {
+  background-color: #0056b3;
+}
+
+/* Remove the default border from input fields */
+input[type="text"] {
+  border: none;
+  outline: none;
+  padding: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Remove hover effects */
+input[type="text"]:hover {
+  border: none; /* No border on hover */
+}
+
+/* Highlight only when focused */
+input[type="text"]:focus {
+  border: 1px solid #007bff; /* Add border on focus */
+  background-color: #f0f8ff; /* Light background color for highlight */
+  outline: none; /* Remove default outline */
+}
+
+/* Make non-editable fields look normal */
+input[type="text"][readOnly] {
+  background-color: transparent; /* No background color */
+  border: none; /* No border */
+  cursor: pointer; /* Show pointer cursor to indicate clickability */
+}
+
+select {
+  border: none;
+  outline: none;
+  padding: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+select:focus {
+  border: 1px solid #007bff; /* You can change the color to match your design */
+  border-radius: 4px;
+}
+
+select:hover {
+  border: 1px solid #007bff; /* You can change the color to match your design */
+  border-radius: 4px;
 }
