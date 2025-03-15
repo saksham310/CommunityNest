@@ -147,4 +147,37 @@ router.get("/:id/title", async (req, res) => {
   }
 });
 
+// Backend API endpoint for sending emails
+router.post("/api/send-feedback-emails", async (req, res) => {
+  const { emails, subject, message } = req.body;
+
+  try {
+    // Configure Nodemailer
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "your-email@gmail.com", // Replace with your email
+        pass: "your-email-password", // Replace with your email password
+      },
+    });
+
+    // Send emails to all recipients
+    const emailPromises = emails.map((email) => {
+      return transporter.sendMail({
+        from: "your-email@gmail.com",
+        to: email,
+        subject: subject,
+        text: message,
+      });
+    });
+
+    await Promise.all(emailPromises);
+
+    res.status(200).json({ message: "Emails sent successfully!" });
+  } catch (error) {
+    console.error("Error sending emails:", error);
+    res.status(500).json({ message: "Failed to send emails" });
+  }
+});
+
 module.exports = router;

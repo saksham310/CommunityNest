@@ -81,34 +81,33 @@ router.put("/update", async (req, res) => {
   const { sheetUrl, rowIndex, columnIndex, newValue } = req.body;
 
   if (!sheetUrl || rowIndex === undefined || columnIndex === undefined || newValue === undefined) {
-      return res.status(400).json({ error: "Missing required fields" });
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
-      const sheetId = extractSheetId(sheetUrl);
-      if (!sheetId) {
-          return res.status(400).json({ error: "Invalid Google Sheet URL" });
-      }
+    const sheetId = extractSheetId(sheetUrl);
+    if (!sheetId) {
+      return res.status(400).json({ error: "Invalid Google Sheet URL" });
+    }
 
-      const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
-      await doc.loadInfo();
+    const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
+    await doc.loadInfo();
 
-      const sheet = doc.sheetsByIndex[0];
-      await sheet.loadCells(); // Load all cells in the sheet
+    const sheet = doc.sheetsByIndex[0];
+    await sheet.loadCells(); // Load all cells in the sheet
 
-      // Get the cell to update (1-based indexing for rows and columns)
-      const cell = sheet.getCell(rowIndex, columnIndex);
-      cell.value = newValue; // Update the cell value
+    // Get the cell to update (1-based indexing for rows and columns)
+    const cell = sheet.getCell(rowIndex, columnIndex);
+    cell.value = newValue; // Update the cell value
 
-      await sheet.saveUpdatedCells(); // Save the updated cells
+    await sheet.saveUpdatedCells(); // Save the updated cells
 
-      res.json({ success: true, message: "Cell updated successfully" });
+    res.json({ success: true, message: "Cell updated successfully" });
   } catch (error) {
-      console.error("Error updating Google Sheets:", error.message, error.stack);
-      res.status(500).json({ error: error.message });
+    console.error("Error updating Google Sheets:", error.message, error.stack);
+    res.status(500).json({ error: error.message });
   }
 });
-
 
 // Save Google Sheet information to the event
 router.post("/:eventId/save-sheet", async (req, res) => {
@@ -178,5 +177,75 @@ router.delete("/:eventId/delete-sheet", async (req, res) => {
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
+
+
+
+//nodemailer
+const nodemailer = require("nodemailer");
+
+
+// Configure Nodemailer
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER, // Your email
+    pass: process.env.EMAIL_PASSWORD, // Your email password or app password
+  },
+});
+
+// API Route to send feedback emails
+router.post("/send-feedback-emails", async (req, res) => {
+  const { emails, subject, message } = req.body;
+
+  // Validate input
+  if (!emails || !Array.isArray(emails)) { // Fixed: Added missing parenthesis
+    return res.status(400).json({ success: false, error: "Emails must be an array" });
+  }
+  if (!subject || !message) {
+    return res.status(400).json({ success: false, error: "Subject and message are required" });
+  }
+
+  try {
+    // Send emails to all recipients
+    const emailPromises = emails.map((email) => {
+      return transporter
+        .sendMail({
+          from: process.env.EMAIL_USER, // Sender email
+          to: email, // Recipient email
+          subject: subject, // Email subject
+          text: message, // Plain text email message
+          // html: "<p>Your HTML content here</p>", // Uncomment for HTML emails
+        })
+        .then((info) => {
+          console.log(`Email sent to ${email}:`, info.messageId);
+          return { email, success: true, messageId: info.messageId };
+        })
+        .catch((error) => {
+          console.error(`Failed to send email to ${email}:`, error);
+          return { email, success: false, error: error.message };
+        });
+    });
+
+    // Wait for all emails to be sent
+    const results = await Promise.all(emailPromises);
+
+    // Check if any emails failed to send
+    const failedEmails = results.filter((result) => !result.success);
+    if (failedEmails.length > 0) {
+      return res.status(500).json({
+        success: false,
+        error: "Some emails failed to send",
+        failedEmails,
+      });
+    }
+
+    // All emails sent successfully
+    res.json({ success: true, message: "Emails sent successfully!" });
+  } catch (error) {
+    console.error("Error sending emails:", error);
+    res.status(500).json({ success: false, error: "Failed to send emails" });
+  }
+});
+
 
 module.exports = router;

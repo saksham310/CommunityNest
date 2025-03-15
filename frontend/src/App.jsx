@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import './index.css';
 import {
   BrowserRouter as Router,
   Routes,
@@ -14,10 +15,11 @@ import Department from "./Department/department.jsx";
 import ForgotPassword from "./ForgotPassword/ForgotPassword";
 import ResetPassword from "./ResetPassword/ResetPassword";
 import NewPassword from "./NewPassword/NewPassword.jsx";
-import Dashboard from "./Dashboard/dashboard.jsx";
+
 import DocumentRepository from "./Department/DocumentRepository.jsx";
 import EditorPage from "./Department/EditorPage";
 import EventDetails from "./Events/EventDetails.jsx";
+import Dashboard from "./Dashboard/dashboard.jsx";
 
 import AdminUserMeetings from "./Meetings/meeting.jsx";
 import AdminUserEvents from "./Events/event.jsx";
