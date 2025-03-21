@@ -18,50 +18,34 @@ const ScheduleMeetingForm = () => {
   const [events, setEvents] = useState([]);
   const [menuVisible, setMenuVisible] = useState(null);
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
-
   const [memberEmails, setMemberEmails] = useState([]);
 
-useEffect(() => {
-  const authStatus = localStorage.getItem("authenticated");
-  if (authStatus === "true") {
-    setAuthenticated(true);
-    fetchEvents();
-  } else {
-    setAuthenticated(false);
-  }
+  useEffect(() => {
+    const checkAuth = async () => {
+        try {
+            const response = await fetch("http://localhost:5001/api/meeting/check-auth", {
+                method: "GET",
+                credentials: "include", // Ensure cookies are sent
+            });
 
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("auth") === "success") {
-    setAuthenticated(true);
+            if (response.ok) {
+                setAuthenticated(true);
+                fetchEvents();
+            } else {
+                setAuthenticated(false);
+            }
+        } catch (error) {
+            console.error("Error checking authentication status:", error);
+            setAuthenticated(false);
+        }
+    };
 
-    // Assuming the Google authentication token is received in the URL params or in the response
-    const googleAuthToken = urlParams.get("googleAuthToken"); // Replace with actual token extraction method
-
-    // Store the token in localStorage
-    if (googleAuthToken) {
-      localStorage.setItem("googleAuthToken", googleAuthToken); // Store the googleAuthToken
-      
-    }
-
-    // Persist the login state
-    localStorage.setItem("authenticated", "true");
-    localStorage.setItem("googleAuthToken", googleAuthToken); // Store the googleAuthToken
-
-    fetchEvents();
-  }
-
-  // After redirection from Google auth, check for the googleAuthToken in localStorage
-  const token = localStorage.getItem("googleAuthToken");  // Retrieve the token from localStorage
-  if (token) {
-    setAuthenticated(true);
-    fetchEvents();  // Fetch events after successful authentication
-  }
+    checkAuth();
 }, []);
-
 
   const fetchMemberEmails = async () => {
     try {
-      const userId = localStorage.getItem("userId"); // Ensure userId is retrieved correctly
+      const userId = localStorage.getItem("userId");
 
       if (!userId) {
         console.error("User ID is required");
@@ -69,7 +53,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        `http://localhost:5001/api/meeting/community/members?userId=${userId}`, // Ensure correct backend route
+        `http://localhost:5001/api/meeting/community/members?userId=${userId}`,
         {
           method: "GET",
           credentials: "include",
@@ -78,12 +62,11 @@ useEffect(() => {
 
       const result = await response.json();
       if (response.ok) {
-        const emails = result.emails.join(", "); // Convert array to comma-separated string
-
-        setMemberEmails(result.emails); // Save emails separately
+        const emails = result.emails.join(", ");
+        setMemberEmails(result.emails);
         setEventData((prev) => ({
           ...prev,
-          attendees: emails, // Update attendees field
+          attendees: emails,
         }));
       } else {
         console.error("Error fetching member emails:", result.error);
@@ -97,15 +80,18 @@ useEffect(() => {
     try {
       const response = await fetch("http://localhost:5001/api/meeting/events", {
         method: "GET",
-        credentials: "include",
+        credentials: "include", // Ensure cookies are sent
       });
-
-      const result = await response.json();
-      if (response.ok) {
-        setEvents(result.events);
-      } else {
-        alert(`Error fetching events: ${result.error}`);
+  
+      if (!response.ok) {
+        const errorText = await response.text(); // Read the response as text
+        console.error("Error fetching events:", errorText);
+        alert(`Error fetching events: ${errorText}`);
+        return;
       }
+  
+      const result = await response.json();
+      setEvents(result.events);
     } catch (error) {
       console.error("Error fetching events:", error);
       alert("Something went wrong while fetching events.");
@@ -125,50 +111,50 @@ useEffect(() => {
     e.preventDefault();
 
     if (!authenticated) {
-      alert("Please sign in with Google before scheduling a meeting.");
-      return;
+        alert("Please sign in with Google before scheduling a meeting.");
+        return;
     }
 
     const attendeesList = eventData.attendees
-      .split(",")
-      .map((email) => email.trim());
+        .split(",")
+        .map((email) => email.trim());
+
+    console.log("Scheduling meeting with data:", { ...eventData, attendees: attendeesList });
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/meeting/schedule_meeting",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ ...eventData, attendees: attendeesList }),
+        const response = await fetch(
+            "http://localhost:5001/api/meeting/schedule_meeting",
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include", // Ensure cookies are sent
+                body: JSON.stringify({ ...eventData, attendees: attendeesList }),
+            }
+        );
+
+        const result = await response.json();
+        if (response.ok) {
+            setMeetingLink(result.eventLink);
+            alert(`Meeting Scheduled! Link: ${result.eventLink}`);
+            fetchEvents();
+            setEventData({
+                summary: "",
+                description: "",
+                start: "",
+                end: "",
+                attendees: "",
+            });
+        } else {
+            alert(`Error: ${result.error}`);
         }
-      );
-
-      const result = await response.json();
-      if (response.ok) {
-        setMeetingLink(result.eventLink);
-        alert(`Meeting Scheduled! Link: ${result.eventLink}`);
-        fetchEvents();
-
-        // Reset the form to its initial state
-        setEventData({
-          summary: "",
-          description: "",
-          start: "",
-          end: "",
-          attendees: "",
-        });
-      } else {
-        alert(`Error: ${result.error}`);
-      }
     } catch (error) {
-      console.error("Error scheduling meeting:", error);
-      alert("Something went wrong. Please try again.");
+        console.error("Error scheduling meeting:", error);
+        alert("Something went wrong. Please try again.");
     }
-  };
+};
 
   const handleMenuToggle = (eventId) => {
-    setMenuVisible(menuVisible === eventId ? null : eventId); // Toggle the menu visibility
+    setMenuVisible(menuVisible === eventId ? null : eventId);
   };
 
   const handleCopyLink = (link) => {
@@ -183,46 +169,55 @@ useEffect(() => {
     if (!eventToEdit) return;
 
     setCurrentEvent({
-      ...eventToEdit,
-      start: eventToEdit.start?.dateTime?.slice(0, 16) || "",
-      end: eventToEdit.end?.dateTime?.slice(0, 16) || "",
-      attendees: eventToEdit.attendees
-        ? eventToEdit.attendees.map((attendee) => attendee.email).join(", ")
-        : "",
+        ...eventToEdit,
+        start: eventToEdit.start?.dateTime?.slice(0, 16) || "",
+        end: eventToEdit.end?.dateTime?.slice(0, 16) || "",
+        attendees: eventToEdit.attendees
+            ? eventToEdit.attendees.map((attendee) => attendee.email).join(", ") // This converts the array to a string
+            : "",
     });
 
     setEditModalVisible(true);
+};
+
+const handleEditSubmit = async (e) => {
+  e.preventDefault();
+
+  // Convert the attendees string back into an array
+  const updatedEvent = {
+      ...currentEvent,
+      attendees: currentEvent.attendees
+          .split(",")
+          .map((email) => email.trim()), // Convert to array and trim whitespace
   };
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    // Update the event on the server or perform the necessary actions
-    console.log("Updated Event:", currentEvent);
+  console.log("Editing event with data:", updatedEvent);
 
-    try {
+  try {
       const response = await fetch(
-        `http://localhost:5001/api/meeting/update_meeting/${currentEvent.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(currentEvent),
-        }
+          `http://localhost:5001/api/meeting/edit_meeting/${currentEvent.id}`,
+          {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include", // Ensure cookies are sent
+              body: JSON.stringify(updatedEvent),
+          }
       );
 
       const result = await response.json();
       if (response.ok) {
-        alert("Event updated successfully!");
-        setEditModalVisible(false);
-        fetchEvents(); // Re-fetch events to display updated data
+          alert("Event updated successfully!");
+          setEditModalVisible(false);
+          fetchEvents();
       } else {
-        alert(`Error: ${result.error}`);
+          alert(`Error: ${result.error}`);
       }
-    } catch (error) {
+  } catch (error) {
       console.error("Error updating event:", error);
       alert("Something went wrong. Please try again.");
-    }
-  };
+  }
+};
+
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setCurrentEvent((prev) => ({
@@ -264,12 +259,10 @@ useEffect(() => {
         <div className="upcoming-meetings">
           <h2>Meetings</h2>
 
-          {/* Message prompting user to sign in */}
           {!authenticated && (
             <p>Sign in with Google to view scheduled meetings</p>
           )}
 
-          {/* Schedule Meeting Button (Appears after Meetings heading) */}
           {!authenticated ? (
             <button onClick={handleGoogleAuth}>Sign in with Google</button>
           ) : (
@@ -277,7 +270,7 @@ useEffect(() => {
               <button
                 onClick={async () => {
                   setScheduleModalVisible(true);
-                  await fetchMemberEmails(); // Fetch emails before opening modal
+                  await fetchMemberEmails();
                 }}
                 className="schedule-button"
               >
@@ -321,14 +314,14 @@ useEffect(() => {
                       <input
                         type="text"
                         name="attendees"
-                        value={eventData.attendees} // This should update when emails are fetched
+                        value={eventData.attendees}
                         placeholder="Attendees (comma-separated emails)"
                         onChange={(e) =>
                           setEventData((prev) => ({
                             ...prev,
                             attendees: e.target.value,
                           }))
-                        } // Allow manual edits
+                        }
                         required
                       />
                       <div className="button-group">
@@ -336,7 +329,7 @@ useEffect(() => {
                         <button
                           className="close-modal-button"
                           onClick={() => setScheduleModalVisible(false)}
-                          type="button" // Make sure this doesn't trigger the form submission
+                          type="button"
                         >
                           Cancel
                         </button>
@@ -347,6 +340,7 @@ useEffect(() => {
               )}
             </>
           )}
+
           {editModalVisible && (
             <div className="modal">
               <div className="modal-content">
@@ -381,7 +375,6 @@ useEffect(() => {
                     onChange={handleEditChange}
                     required
                   />
-
                   <input
                     type="text"
                     name="attendees"
@@ -405,7 +398,6 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Meeting Cards List */}
           <ul>
             {events.length > 0 ? (
               events.map((event) => (
@@ -431,7 +423,7 @@ useEffect(() => {
                     className="three-dots"
                     onClick={() => handleMenuToggle(event.id)}
                   >
-                    &#x22EE; {/* Unicode for three dots */}
+                    &#x22EE;
                   </div>
                   {menuVisible === event.id && (
                     <div className="options-menu">

@@ -26,6 +26,8 @@ import AdminUserEvents from "./Events/event.jsx";
 import Modal from "./Department/Modal.jsx";
 import FileViewer from "./Department/FileViewer.jsx";
 import ScheduleMeetingForm from "./Meetings/meeting.jsx"; // Import your ScheduleMeetingForm component
+// import GoogleSignIn from "./Meetings/GoogleSignIn.jsx"; // Import the Sign-In component
+
 import AdminDashboard from "./admin/AdminDashboard/AdminDashboard.jsx";
 import AdminMain from "./admin/AdminMain.jsx";
 import Members from "./admin/Admin_Members/Members.jsx";
@@ -44,6 +46,7 @@ function App() {
     "/forgot-password",
     "/reset-password",
     "/new-password",
+    "/google-signin", // Hide header on the Google Sign-In page
   ];
 
   return (
@@ -89,9 +92,9 @@ function App() {
 
         {/* Meeting Scheduling */}
         <Route path="/meeting" element={<ScheduleMeetingForm />} />
+    
 
         <Route path="/event/:eventId" element={<EventDetails />} />
-
 
         {/* Admin Routes */}
         <Route path="/admin-user-meetings" element={<AdminUserMeetings />} />

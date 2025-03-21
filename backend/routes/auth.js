@@ -259,6 +259,22 @@ router.get("/getCommunityDetails/:userId", async (req, res) => {
   }
 });
 
+// Logout route to clear the googleAuthToken cookie
+router.get("/logout", (req, res) => {
+  try {
+      // Clear the googleAuthToken cookie
+      res.clearCookie("googleAuthToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production", // Ensure secure in production
+          sameSite: "Strict",
+      });
 
+      // Optionally, you can also clear other cookies or session data here
+      res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
+      console.error("Error during logout:", error);
+      res.status(500).json({ success: false, message: "Error during logout" });
+  }
+});
 
 module.exports = router;

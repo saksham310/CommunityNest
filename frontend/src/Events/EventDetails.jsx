@@ -6,6 +6,7 @@ import "./EventDetails.css";
 import { FaPlus } from "react-icons/fa"; // Import the plus icon from react-icons
 import { useRef } from "react";
 import { FaFolder } from "react-icons/fa"; // Import folder icon
+import Cookies from "js-cookie";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -25,9 +26,28 @@ const EventDetails = () => {
   const [editableField, setEditableField] = useState(null); // Track which field is editable
   const [activeSheetUrl, setActiveSheetUrl] = useState(""); // Track the active sheet URL
 
+  const [feedbackEmails, setFeedbackEmails] = useState([]);
   // Add a ref to the dropdown container
   const dropdownRef = useRef(null);
   // Fetch the event title and Google Sheet information on page load
+
+  const [token, setToken] = useState(null);
+  const [email, setEmail] = useState(null);
+
+  useEffect(() => {
+    const authToken = Cookies.get("googleAuthToken");
+    const userEmail = Cookies.get("googleAuthEmail");
+  
+    console.log("Retrieved token from cookies:", authToken);
+    console.log("Retrieved email from cookies:", userEmail);
+  
+    if (authToken && userEmail) {
+      setToken(authToken);
+      setEmail(userEmail);
+    } else {
+      console.error("Token or email not found in cookies.");
+    }
+  }, []);
 
   useEffect(() => {
     const fetchEventTitle = async () => {
@@ -72,6 +92,58 @@ const EventDetails = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const sendFeedbackEmail = async (emails, subject, message) => {
+    try {
+      // Retrieve token and email from cookies
+      const authToken = Cookies.get("googleAuthToken");
+      const userEmail = Cookies.get("googleAuthEmail");
+  
+      console.log("Token from cookies:", authToken);
+      console.log("Email from cookies:", userEmail);
+  
+      // Check if the user is authenticated
+      if (!authToken || !userEmail) {
+        alert("Please sign in with Google to send feedback emails.");
+        window.location.href = "http://localhost:5001/api/meeting/google"; // Redirect to OAuth2 flow
+        return;
+      }
+  
+      // Ensure there are emails to send
+      if (emails.length === 0) {
+        alert("Please add at least one email address.");
+        return;
+      }
+  
+      // Send feedback emails
+      const response = await axios.post(
+        `${baseUrl}/events/send-feedback-emails`,
+        {
+          emails, // Array of recipient emails
+          subject,
+          message,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`, // Include the token in the request headers
+          },
+          withCredentials: true, // Ensure cookies are sent
+        }
+      );
+  
+      alert(response.data.message); // Show success message
+    } catch (error) {
+      console.error("Error sending feedback emails:", error);
+  
+      // If the token is expired, redirect to Google authentication
+      if (error.response && error.response.status === 401) {
+        alert("Your session has expired. Please sign in again.");
+        window.location.href = "http://localhost:5001/api/meeting/google"; // Redirect to OAuth2 flow
+      } else {
+        alert("Failed to send feedback emails.");
+      }
+    }
+  };
 
   // Function to handle the Google Sheets file upload
   const handleFileUpload = async (sheetUrl) => {
@@ -350,7 +422,7 @@ const EventDetails = () => {
           className={activeTab === "feedback" ? "active" : ""}
           onClick={() => setActiveTab("feedback")}
         >
-          Feedback Process
+          Feedback
         </button>
       </nav>
 
@@ -493,112 +565,130 @@ const EventDetails = () => {
 
           {activeTab === "feedback" && (
             <div className="feedback-section">
-              <h2>Feedback Section</h2>
-              <p>Send feedback emails to attendees who attended the event.</p>
+              {/* <h2>Feedback Section</h2> */}
 
-              {/* Dropdown to select a sheet */}
-              <div className="sheet-selector">
-                <label htmlFor="sheet-select">Select Sheet:</label>
-                <select
-                  id="sheet-select"
-                  onChange={(e) => handleSheetSelect(e.target.value)}
-                  value={activeSheetUrl}
-                >
-                  <option value="">-- Select a sheet --</option>
-                  {googleSheets.map((sheet) => (
-                    <option key={sheet.url} value={sheet.url}>
-                      {sheet.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <div className="feedback-container">
+                {/* Left Side: Sheet Selector, Active Sheet, and Attendee Emails */}
+                <div className="left-side">
+                  {/* Dropdown to select a sheet */}
+                  <div className="sheet-selector">
+                    <p>
+                      Send feedback emails to attendees who attended the event.
+                    </p>
+                    <label htmlFor="sheet-select">Select Sheet:</label>
+                    <select
+                      id="sheet-select"
+                      onChange={(e) => handleSheetSelect(e.target.value)}
+                      value={activeSheetUrl}
+                    >
+                      <option value="">-- Select a sheet --</option>
+                      {googleSheets.map((sheet) => (
+                        <option key={sheet.url} value={sheet.url}>
+                          {sheet.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Display active sheet title */}
-              {activeSheetUrl && (
-                <h3>
-                  Active Sheet:{" "}
-                  {
-                    googleSheets.find((sheet) => sheet.url === activeSheetUrl)
-                      ?.title
-                  }
-                </h3>
-              )}
+                  {/* Display active sheet title */}
+                  {activeSheetUrl && (
+                    <h4>
+                      Active Sheet :{" "}
+                      {
+                        googleSheets.find(
+                          (sheet) => sheet.url === activeSheetUrl
+                        )?.title
+                      }
+                    </h4>
+                  )}
 
-              {/* Display emails of attendees marked as "Present" */}
-              <div className="attendee-emails">
-                <h4>Attendees Marked as Present:</h4>
-                {getPresentAttendees().length > 0 ? (
-                  <ul>
-                    {getPresentAttendees().map((attendee, index) => (
-                      <li key={index}>{attendee.Email}</li> // Replace "email" with the actual column name for emails
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No attendees marked as "Present".</p>
-                )}
-              </div>
+                  {/* Display emails of attendees marked as "Present" */}
+                  <div className="attendee-emails">
+                    {getPresentAttendees().length > 0 ? (
+                      <ul>
+                        {getPresentAttendees().map((attendee, index) => (
+                          <li key={index}>{attendee.Email}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No attendees marked as "Present".</p>
+                    )}
+                  </div>
+                </div>
 
-              {/* Feedback Form */}
-              <div className="feedback-form">
-                <h3>Send Feedback Emails</h3>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
+                {/* Right Side: Feedback Form */}
+                <div className="right-side">
+                  <div className="feedback-form">
+                    <h3>Send Feedback Emails</h3>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
 
-                    // Get emails of attendees marked as "Present"
-                    const presentAttendees = getPresentAttendees();
-                    const emails = presentAttendees.map(
-                      (attendee) => attendee.Email
-                    ); // Replace "email" with the actual column name for emails
+                        // Get emails of attendees marked as "Present"
+                        const presentAttendees = getPresentAttendees();
+                        const emails = presentAttendees.map(
+                          (attendee) => attendee.Email
+                        );
 
-                    if (emails.length === 0) {
-                      alert("No attendees marked as 'Present'.");
-                      return;
-                    }
-
-                    // Get subject and message from the form
-                    const subject = e.target.subject.value;
-                    const message = e.target.message.value;
-
-                    try {
-                      // Send feedback emails
-                      const response = await axios.post(
-                        `${baseUrl}/send-feedback-emails`,
-                        {
-                          emails,
-                          subject,
-                          message,
+                        if (emails.length === 0) {
+                          alert("No attendees marked as 'Present'.");
+                          return;
                         }
-                      );
 
-                      alert(response.data.message); // Show success message
-                    } catch (error) {
-                      console.error("Error sending feedback emails:", error);
-                      alert("Failed to send feedback emails.");
-                    }
-                  }}
-                >
-                  <div className="form-group">
-                    <label htmlFor="subject">Subject:</label>
-                    <input
-                      type="text"
-                      id="subject"
-                      name="subject"
-                      placeholder="Enter email subject"
-                      required
-                    />
+                        // Get subject and message from the form
+                        const subject = e.target.subject.value;
+                        const message = e.target.message.value;
+
+                        // Send feedback emails
+                        await sendFeedbackEmail(emails, subject, message);
+                      }}
+                    >
+                      {/* "To:" Field */}
+                      <div className="form-group">
+                        <label htmlFor="to">To:</label>
+                        <div className="email-list">
+                          {getPresentAttendees().length > 0 ? (
+                            getPresentAttendees().map((attendee, index) => (
+                              <span key={index} className="email-item">
+                                {attendee.Email}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="no-emails">
+                              No attendees marked as "Present".
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Subject Field */}
+                      <div className="form-group">
+                        <label htmlFor="subject">Subject:</label>
+                        <input
+                          type="text"
+                          id="subject"
+                          name="subject"
+                          placeholder="Enter email subject"
+                          required
+                        />
+                      </div>
+
+                      {/* Message Field */}
+                      <div className="form-group">
+                        <label htmlFor="message">Message:</label>
+                        <textarea
+                          id="message"
+                          name="message"
+                          placeholder="Enter email message"
+                          required
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <button type="submit">Send Feedback Emails</button>
+                    </form>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="message">Message:</label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      placeholder="Enter email message"
-                      required
-                    />
-                  </div>
-                  <button type="submit">Send Feedback Emails</button>
-                </form>
+                </div>
               </div>
             </div>
           )}

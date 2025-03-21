@@ -9,6 +9,8 @@ const Community = require("../models/Community"); // Assuming you have a Communi
 
 dotenv.config();
 
+
+
 // Set up session handling (make sure this is also in your main server file)
 router.use(session({
     secret: 'your_secret_key', 
@@ -27,80 +29,122 @@ const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
 const scopes = [
     'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/calendar'
-];
-
-// Route to start OAuth2 process
-router.get("/google", (req, res) => {
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/gmail.send', // Add this scope for Gmail API
+  ];
+  
+  // Route to start OAuth2 process
+  router.get("/google", (req, res) => {
     const url = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: scopes,
-        prompt: 'consent'
+      access_type: 'offline',
+      scope: scopes,
+      prompt: 'consent',
     });
-
+  
     res.redirect(url);
-});
+  });
 
-// Redirect from Google OAuth after authentication
-router.get("/google/redirect", async (req, res) => {
+  router.get("/google/redirect", async (req, res) => {
     const { code } = req.query;
     if (!code) {
-        return res.status(400).json({ error: "Authorization code is missing" });
+      return res.status(400).json({ error: "Authorization code is missing" });
     }
-
+  
     try {
-        // Exchange the authorization code for tokens
-        const { tokens } = await oauth2Client.getToken(code);
-        oauth2Client.setCredentials(tokens);
-
-        // Store tokens in session
-        req.session.userTokens = tokens;
-        req.session.save(); // Ensure session is saved
-
-        console.log("Authenticated successfully, tokens saved in session");
-
-        // Redirect to frontend with the token in the query string
-        res.redirect(`http://localhost:3000/meeting?auth=success&googleAuthToken=${tokens.access_token}`);
+      // Exchange the authorization code for tokens
+      const { tokens } = await oauth2Client.getToken(code);
+      oauth2Client.setCredentials(tokens);
+  
+      // Store token and email securely in HTTP-only cookies
+      res.cookie("googleAuthToken", tokens.access_token, {
+        httpOnly: true, // Prevents access from JavaScript
+        secure: process.env.NODE_ENV === "production", // Secure only in production
+        sameSite: "Strict", // Prevents CSRF
+        maxAge: 7 * 24 * 60 * 60 * 1000, // Set expiry to 7 days
+        path: "/", // Make the cookie accessible across all routes
+      });
+  
+      res.cookie("googleAuthEmail", tokens.email, {
+        httpOnly: true, // Prevents access from JavaScript
+        secure: process.env.NODE_ENV === "production", // Secure only in production
+        sameSite: "Strict", // Prevents CSRF
+        maxAge: 7 * 24 * 60 * 60 * 1000, // Set expiry to 7 days
+        path: "/", // Make the cookie accessible across all routes
+      });
+  
+      console.log("Authenticated successfully, token and email stored in cookies");
+  
+      // Redirect to frontend without exposing token in the URL
+      res.redirect("http://localhost:3000/meeting?auth=success");
     } catch (error) {
-        console.error("Error authenticating:", error);
-        res.redirect("http://localhost:3000/meeting?auth=failure");
+      console.error("Error authenticating:", error);
+      res.redirect("http://localhost:3000/meeting?auth=failure");
     }
+  });
+  
+  const ensureAuthenticated = (req, res, next) => {
+    const token = req.cookies.googleAuthToken; // Read token from cookie
+  
+    console.log("Token from cookie:", token); // Log the token
+  
+    if (!token) {
+      console.error("No token found in cookies");
+      return res.status(401).json({ error: "Unauthorized. Please authenticate first." });
+    }
+  
+    // Set credentials for Google Calendar API
+    oauth2Client.setCredentials({ access_token: token });
+  
+    // Handle token expiration
+    if (oauth2Client.credentials.expiry_date <= Date.now()) {
+      console.log("Token expired, refreshing...");
+      oauth2Client.refreshAccessToken(async (err, tokens) => {
+        if (err) {
+          console.error("Failed to refresh token:", err);
+          return res.status(500).json({ error: "Failed to refresh token" });
+        }
+  
+        // Update the token in cookies
+        res.cookie("googleAuthToken", tokens.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Strict",
+          maxAge: tokens.expiry_date - Date.now(),
+        });
+  
+        // Set the new tokens for Google Calendar API
+        oauth2Client.setCredentials(tokens);
+  
+        // Proceed to the next middleware/route
+        next();
+      });
+    } else {
+      console.log("Token is valid");
+      next();
+    }
+  };
+
+const people = google.people({ version: 'v1', auth: oauth2Client });
+
+//check if the user is authenticated
+router.get("/check-auth", ensureAuthenticated, (req, res) => {
+    res.json({ authenticated: true });
 });
 
 
-// Middleware to check authentication
-const ensureAuthenticated = (req, res, next) => {
-    if (!req.session.userTokens) {
-        return res.status(401).json({ error: "Unauthorized. Please authenticate first." });
-    }
-    oauth2Client.setCredentials(req.session.userTokens);
-
-    // Handle token expiration
-    if (oauth2Client.credentials.expiry_date <= Date.now()) {
-        oauth2Client.refreshAccessToken((err, tokens) => {
-            if (err) {
-                return res.status(500).json({ error: "Failed to refresh token" });
-            }
-            req.session.userTokens = tokens;
-            req.session.save();
-            oauth2Client.setCredentials(tokens);
-            next();
-        });
-    } else {
-        next();
-    }
-};
-
-
-// Schedule a meeting using the Google Calendar API
 router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
     try {
         const { summary, description, start, end, attendees } = req.body;
 
+        console.log("Request body:", { summary, description, start, end, attendees });
+
         // Validate input fields
         if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
+            console.error("Validation failed: Missing required fields");
             return res.status(400).json({ error: "All fields are required and attendees should be an array" });
         }
+
+        console.log("Scheduling event with data:", { summary, description, start, end, attendees });
 
         // Create the event using Google Calendar API
         const event = await calendar.events.insert({
@@ -122,6 +166,7 @@ router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
             },
         });
 
+        console.log("Event scheduled successfully:", event.data);
         res.json({ msg: 'Event scheduled successfully', eventLink: event.data.hangoutLink });
     } catch (error) {
         console.error('Error scheduling event:', error);
@@ -129,9 +174,9 @@ router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
     }
 });
 
-// Fetch all scheduled meetings/events from Google Calendar
 router.get('/events', ensureAuthenticated, async (req, res) => {
     try {
+        console.log("Fetching events from Google Calendar...");
         const response = await calendar.events.list({
             calendarId: 'primary',
             auth: oauth2Client,
@@ -140,8 +185,8 @@ router.get('/events', ensureAuthenticated, async (req, res) => {
             singleEvents: true,
             orderBy: 'startTime',
         });
-        
 
+        console.log("Events fetched successfully:", response.data.items);
         res.json({ events: response.data.items });
     } catch (error) {
         console.error('Error fetching events:', error);
@@ -149,15 +194,20 @@ router.get('/events', ensureAuthenticated, async (req, res) => {
     }
 });
 
-// Edit a meeting/event
+
 router.put('/edit_meeting/:eventId', ensureAuthenticated, async (req, res) => {
     const { eventId } = req.params;
     const { summary, description, start, end, attendees } = req.body;
-  
+
+    console.log("Request body:", { summary, description, start, end, attendees });
+
     // Validate input fields
     if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
+        console.error("Validation failed: Missing required fields or attendees is not an array");
         return res.status(400).json({ error: "All fields are required and attendees should be an array" });
     }
+
+    console.log("Editing event with data:", { summary, description, start, end, attendees });
 
     try {
         // Prepare the event data for Google Calendar
@@ -179,7 +229,7 @@ router.put('/edit_meeting/:eventId', ensureAuthenticated, async (req, res) => {
             },
         });
 
-        // Send the response with the updated event details
+        console.log("Event updated successfully:", event.data);
         res.json({ msg: 'Event updated successfully', eventLink: event.data.hangoutLink });
     } catch (error) {
         console.error('Error updating event:', error);
@@ -245,6 +295,12 @@ router.get("/community/members", async (req, res) => {
   });
   
   
-
+  router.get("/user/email", ensureAuthenticated, (req, res) => {
+    const email = req.cookies.googleAuthEmail;
+    if (!email) {
+        return res.status(404).json({ error: "Email not found" });
+    }
+    res.json({ email });
+});
 
 module.exports = router;

@@ -42,20 +42,37 @@ const Header = () => {
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("username");
-    localStorage.removeItem("email");
-    localStorage.removeItem('userId');
-    localStorage.removeItem('status');
-    localStorage.removeItem('token');
-    localStorage.removeItem('authenticated');
-    localStorage.removeItem('googleAuthToken');
-    setUser({ username: "Guest", email: "Not Available" });
-    navigate("/login");
-    setShowDropdown(false);
-  };
+  const handleLogout = async () => {
+    try {
+        // Call the backend logout route to clear the googleAuthToken cookie
+        const response = await fetch("http://localhost:5001/api/auth/logout", {
+            method: "GET",
+            credentials: "include", // Ensure cookies are sent
+        });
 
+        if (response.ok) {
+            // Clear local storage
+            localStorage.removeItem("userToken");
+            localStorage.removeItem("username");
+            localStorage.removeItem("email");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("status");
+            localStorage.removeItem("token");
+            localStorage.removeItem("authenticated");
+
+            // Reset user state
+            setUser({ username: "Guest", email: "Not Available" });
+
+            // Redirect to login page
+            navigate("/login");
+            setShowDropdown(false);
+        } else {
+            console.error("Failed to logout");
+        }
+    } catch (error) {
+        console.error("Error logging out:", error);
+    }
+};
   return (
     <header className="App-header">
       <img src={logo} className="App-logo" alt="logo" />

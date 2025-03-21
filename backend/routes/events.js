@@ -9,6 +9,7 @@ const User = require('../models/User');
 const nodemailer = require("nodemailer");
 
 const router = express.Router();
+const ensureAuthenticated = require('./meeting.js'); // Import the middleware if not already present
 
 dotenv.config();
 
@@ -147,36 +148,76 @@ router.get("/:id/title", async (req, res) => {
   }
 });
 
-// Backend API endpoint for sending emails
-router.post("/api/send-feedback-emails", async (req, res) => {
+
+router.post('/send-feedback-emails', ensureAuthenticated, async (req, res) => {
   const { emails, subject, message } = req.body;
 
+  // Retrieve the access token and email from cookies
+  const accessToken = req.cookies.googleAuthToken;
+  const userEmail = req.cookies.googleAuthEmail;
+
+  console.log("Token from cookies (backend):", accessToken);
+  console.log("Email from cookies (backend):", userEmail);
+
+  if (!accessToken || !userEmail) {
+    return res.status(401).json({ error: "Unauthorized. Please authenticate first." });
+  }
+
+  // Create a Nodemailer transporter using OAuth2
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: userEmail, // Use the logged-in user's email from cookies
+      clientId: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      accessToken: accessToken, // Use the access token from cookies
+    },
+  });
+
+  // Define email options
+  const mailOptions = {
+    from: userEmail, // Sender address (logged-in user's email)
+    to: emails.join(', '), // Recipient emails (comma-separated)
+    subject: subject, // Email subject
+    text: message, // Plain text body
+    html: `<p>${message}</p>`, // HTML body (optional)
+  };
+
+  // Send the email
   try {
-    // Configure Nodemailer
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: "your-email@gmail.com", // Replace with your email
-        pass: "your-email-password", // Replace with your email password
-      },
-    });
-
-    // Send emails to all recipients
-    const emailPromises = emails.map((email) => {
-      return transporter.sendMail({
-        from: "your-email@gmail.com",
-        to: email,
-        subject: subject,
-        text: message,
-      });
-    });
-
-    await Promise.all(emailPromises);
-
-    res.status(200).json({ message: "Emails sent successfully!" });
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ', info.response);
+    res.status(200).json({ message: 'Feedback emails sent successfully' });
   } catch (error) {
-    console.error("Error sending emails:", error);
-    res.status(500).json({ message: "Failed to send emails" });
+    console.error('Error sending email: ', error);
+
+    // If the token is expired, refresh it
+    if (error.code === 'EAUTH' && error.responseCode === 535) {
+      try {
+        const { tokens } = await oauth2Client.refreshAccessToken();
+        oauth2Client.setCredentials(tokens);
+
+        // Update the token in cookies
+        res.cookie("googleAuthToken", tokens.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Strict",
+          maxAge: tokens.expiry_date - Date.now(),
+          path: "/", // Make the cookie accessible across all routes
+        });
+
+        // Retry sending the email
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Email sent after token refresh: ', info.response);
+        res.status(200).json({ message: 'Feedback emails sent successfully' });
+      } catch (refreshError) {
+        console.error('Error refreshing token: ', refreshError);
+        res.status(500).json({ error: 'Failed to refresh token and send feedback emails' });
+      }
+    } else {
+      res.status(500).json({ error: 'Failed to send feedback emails' });
+    }
   }
 });
 
