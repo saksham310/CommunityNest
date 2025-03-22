@@ -6,7 +6,6 @@ import "./EventDetails.css";
 import { FaPlus } from "react-icons/fa"; // Import the plus icon from react-icons
 import { useRef } from "react";
 import { FaFolder } from "react-icons/fa"; // Import folder icon
-import Cookies from "js-cookie";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -25,7 +24,7 @@ const EventDetails = () => {
   const [showUploadPopup, setShowUploadPopup] = useState(false); // Control popup visibility
   const [editableField, setEditableField] = useState(null); // Track which field is editable
   const [activeSheetUrl, setActiveSheetUrl] = useState(""); // Track the active sheet URL
-
+  const [editableEmails, setEditableEmails] = useState("");
   const [feedbackEmails, setFeedbackEmails] = useState([]);
   // Add a ref to the dropdown container
   const dropdownRef = useRef(null);
@@ -35,18 +34,38 @@ const EventDetails = () => {
   const [email, setEmail] = useState(null);
 
   useEffect(() => {
-    const authToken = Cookies.get("googleAuthToken");
-    const userEmail = Cookies.get("googleAuthEmail");
-  
-    console.log("Retrieved token from cookies:", authToken);
-    console.log("Retrieved email from cookies:", userEmail);
-  
-    if (authToken && userEmail) {
-      setToken(authToken);
-      setEmail(userEmail);
-    } else {
-      console.error("Token or email not found in cookies.");
-    }
+    // Initialize editableEmails with the emails of attendees marked as "Present"
+    const presentEmails = getPresentAttendees()
+      .map((attendee) => attendee.Email)
+      .join(", ");
+    setEditableEmails(presentEmails);
+  }, [activeSheetUrl, attendees]); // Re-run when activeSheetUrl or attendees change
+
+  useEffect(() => {
+    const fetchAuthDetails = async () => {
+      try {
+        const response = await axios.get(
+          `${baseUrl}/meeting/user/auth-details`,
+          {
+            withCredentials: true, // Include cookies in the request
+          }
+        );
+
+        if (response.data.token && response.data.email) {
+          setToken(response.data.token);
+          setEmail(response.data.email);
+          console.log("Token and email found in response.");
+          console.log("Token:", response.data.token);
+          console.log("Email:", response.data.email);
+        } else {
+          console.error("Token or email not found in response.");
+        }
+      } catch (error) {
+        console.error("Error fetching auth details:", error);
+      }
+    };
+
+    fetchAuthDetails();
   }, []);
 
   useEffect(() => {
@@ -79,6 +98,7 @@ const EventDetails = () => {
     fetchEventTitle();
     fetchGoogleSheets();
   }, [eventId]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -95,53 +115,29 @@ const EventDetails = () => {
 
   const sendFeedbackEmail = async (emails, subject, message) => {
     try {
-      // Retrieve token and email from cookies
-      const authToken = Cookies.get("googleAuthToken");
-      const userEmail = Cookies.get("googleAuthEmail");
-  
-      console.log("Token from cookies:", authToken);
-      console.log("Email from cookies:", userEmail);
-  
-      // Check if the user is authenticated
-      if (!authToken || !userEmail) {
-        alert("Please sign in with Google to send feedback emails.");
-        window.location.href = "http://localhost:5001/api/meeting/google"; // Redirect to OAuth2 flow
-        return;
-      }
-  
-      // Ensure there are emails to send
-      if (emails.length === 0) {
-        alert("Please add at least one email address.");
-        return;
-      }
-  
-      // Send feedback emails
-      const response = await axios.post(
-        `${baseUrl}/events/send-feedback-emails`,
-        {
-          emails, // Array of recipient emails
-          subject,
-          message,
+      const response = await fetch("http://localhost:5001/api/events/send-feedback-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`, // Include the token in the request headers
-          },
-          withCredentials: true, // Ensure cookies are sent
-        }
-      );
+        body: JSON.stringify({
+          to: emails, // Array of recipient emails
+          subject: subject, // Email subject
+          message: message, // Email message
+        }),
+        credentials: "include", // Include cookies in the request
+      });
   
-      alert(response.data.message); // Show success message
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert("Feedback emails sent successfully!");
+      } else {
+        alert(`Failed to send feedback emails: ${data.error}`);
+      }
     } catch (error) {
       console.error("Error sending feedback emails:", error);
-  
-      // If the token is expired, redirect to Google authentication
-      if (error.response && error.response.status === 401) {
-        alert("Your session has expired. Please sign in again.");
-        window.location.href = "http://localhost:5001/api/meeting/google"; // Redirect to OAuth2 flow
-      } else {
-        alert("Failed to send feedback emails.");
-      }
+      alert("An error occurred while sending feedback emails.");
     }
   };
 
@@ -624,14 +620,14 @@ const EventDetails = () => {
                       onSubmit={async (e) => {
                         e.preventDefault();
 
-                        // Get emails of attendees marked as "Present"
-                        const presentAttendees = getPresentAttendees();
-                        const emails = presentAttendees.map(
-                          (attendee) => attendee.Email
-                        );
+                        // Split the editableEmails string into an array of emails
+                        const emails = editableEmails
+                          .split(",")
+                          .map((email) => email.trim())
+                          .filter((email) => email); // Remove empty strings
 
                         if (emails.length === 0) {
-                          alert("No attendees marked as 'Present'.");
+                          alert("Please add at least one valid email address.");
                           return;
                         }
 
@@ -646,19 +642,15 @@ const EventDetails = () => {
                       {/* "To:" Field */}
                       <div className="form-group">
                         <label htmlFor="to">To:</label>
-                        <div className="email-list">
-                          {getPresentAttendees().length > 0 ? (
-                            getPresentAttendees().map((attendee, index) => (
-                              <span key={index} className="email-item">
-                                {attendee.Email}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="no-emails">
-                              No attendees marked as "Present".
-                            </span>
-                          )}
-                        </div>
+                        <textarea
+                          id="to"
+                          name="to"
+                          value={editableEmails}
+                          onChange={(e) => setEditableEmails(e.target.value)}
+                          placeholder="Enter recipient emails, separated by commas"
+                          rows={3}
+                          style={{ width: "100%" }}
+                        />
                       </div>
 
                       {/* Subject Field */}
@@ -685,7 +677,7 @@ const EventDetails = () => {
                       </div>
 
                       {/* Submit Button */}
-                      <button type="submit">Send Feedback Emails</button>
+                      <button type="submit">Send</button>
                     </form>
                   </div>
                 </div>

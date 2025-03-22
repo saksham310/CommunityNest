@@ -41,6 +41,7 @@ app.use(
       secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24, // 1 day
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookies in production
     },
   })
 );
@@ -52,11 +53,14 @@ app.use(express.urlencoded({ extended: true }));
 // CORS configuration
 const corsOptions = {
   origin: "http://localhost:3000", // Allow frontend to communicate
-  methods: "GET,POST,PUT,DELETE",
+  methods: "GET,POST,PUT,DELETE,OPTIONS", // Include OPTIONS for preflight requests
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true, // Allow session cookies
 };
 app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options("*", cors(corsOptions)); // Allow preflight requests for all routes
 
 // Helmet for security headers
 app.use(
@@ -84,7 +88,6 @@ app.use(
     },
   })
 );
-
 
 // Serve static files (uploaded images)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

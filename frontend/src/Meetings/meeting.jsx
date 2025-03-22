@@ -19,29 +19,53 @@ const ScheduleMeetingForm = () => {
   const [menuVisible, setMenuVisible] = useState(null);
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
   const [memberEmails, setMemberEmails] = useState([]);
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
-        try {
-            const response = await fetch("http://localhost:5001/api/meeting/check-auth", {
-                method: "GET",
-                credentials: "include", // Ensure cookies are sent
-            });
+      try {
+        const response = await fetch("http://localhost:5001/api/meeting/check-auth", {
+          method: "GET",
+          credentials: "include", // Ensure cookies are sent
+        });
 
-            if (response.ok) {
-                setAuthenticated(true);
-                fetchEvents();
-            } else {
-                setAuthenticated(false);
-            }
-        } catch (error) {
-            console.error("Error checking authentication status:", error);
-            setAuthenticated(false);
+        if (response.ok) {
+          setAuthenticated(true);
+          fetchEvents();
+          fetchUserEmail();
+        } else {
+          setAuthenticated(false);
         }
+      } catch (error) {
+        console.error("Error checking authentication status:", error);
+        setAuthenticated(false);
+      }
     };
 
     checkAuth();
-}, []);
+  }, []);
+
+  const fetchUserEmail = async () => {
+    try {
+        const response = await fetch("http://localhost:5001/api/meeting/fetch-email", {
+            method: "GET",
+            credentials: "include", // Ensure cookies are sent
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Read the response as text
+            console.error("Error fetching user email:", errorText);
+            alert(`Error fetching user email: ${errorText}`);
+            return;
+        }
+
+        const result = await response.json();
+        setEmail(result.email);
+    } catch (error) {
+        console.error("Error fetching user email:", error);
+        alert("Something went wrong while fetching your email. Please try again.");
+    }
+};
 
   const fetchMemberEmails = async () => {
     try {
@@ -82,14 +106,14 @@ const ScheduleMeetingForm = () => {
         method: "GET",
         credentials: "include", // Ensure cookies are sent
       });
-  
+
       if (!response.ok) {
         const errorText = await response.text(); // Read the response as text
         console.error("Error fetching events:", errorText);
         alert(`Error fetching events: ${errorText}`);
         return;
       }
-  
+
       const result = await response.json();
       setEvents(result.events);
     } catch (error) {
@@ -111,47 +135,47 @@ const ScheduleMeetingForm = () => {
     e.preventDefault();
 
     if (!authenticated) {
-        alert("Please sign in with Google before scheduling a meeting.");
-        return;
+      alert("Please sign in with Google before scheduling a meeting.");
+      return;
     }
 
     const attendeesList = eventData.attendees
-        .split(",")
-        .map((email) => email.trim());
+      .split(",")
+      .map((email) => email.trim());
 
     console.log("Scheduling meeting with data:", { ...eventData, attendees: attendeesList });
 
     try {
-        const response = await fetch(
-            "http://localhost:5001/api/meeting/schedule_meeting",
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include", // Ensure cookies are sent
-                body: JSON.stringify({ ...eventData, attendees: attendeesList }),
-            }
-        );
-
-        const result = await response.json();
-        if (response.ok) {
-            setMeetingLink(result.eventLink);
-            alert(`Meeting Scheduled! Link: ${result.eventLink}`);
-            fetchEvents();
-            setEventData({
-                summary: "",
-                description: "",
-                start: "",
-                end: "",
-                attendees: "",
-            });
-        } else {
-            alert(`Error: ${result.error}`);
+      const response = await fetch(
+        "http://localhost:5001/api/meeting/schedule_meeting",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", // Ensure cookies are sent
+          body: JSON.stringify({ ...eventData, attendees: attendeesList }),
         }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+        setMeetingLink(result.eventLink);
+        alert(`Meeting Scheduled! Link: ${result.eventLink}`);
+        fetchEvents();
+        setEventData({
+          summary: "",
+          description: "",
+          start: "",
+          end: "",
+          attendees: "",
+        });
+      } else {
+        alert(`Error: ${result.error}`);
+      }
     } catch (error) {
-        console.error("Error scheduling meeting:", error);
-        alert("Something went wrong. Please try again.");
+      console.error("Error scheduling meeting:", error);
+      alert("Something went wrong. Please try again.");
     }
-};
+  };
 
   const handleMenuToggle = (eventId) => {
     setMenuVisible(menuVisible === eventId ? null : eventId);
@@ -169,54 +193,54 @@ const ScheduleMeetingForm = () => {
     if (!eventToEdit) return;
 
     setCurrentEvent({
-        ...eventToEdit,
-        start: eventToEdit.start?.dateTime?.slice(0, 16) || "",
-        end: eventToEdit.end?.dateTime?.slice(0, 16) || "",
-        attendees: eventToEdit.attendees
-            ? eventToEdit.attendees.map((attendee) => attendee.email).join(", ") // This converts the array to a string
-            : "",
+      ...eventToEdit,
+      start: eventToEdit.start?.dateTime?.slice(0, 16) || "",
+      end: eventToEdit.end?.dateTime?.slice(0, 16) || "",
+      attendees: eventToEdit.attendees
+        ? eventToEdit.attendees.map((attendee) => attendee.email).join(", ") // This converts the array to a string
+        : "",
     });
 
     setEditModalVisible(true);
-};
-
-const handleEditSubmit = async (e) => {
-  e.preventDefault();
-
-  // Convert the attendees string back into an array
-  const updatedEvent = {
-      ...currentEvent,
-      attendees: currentEvent.attendees
-          .split(",")
-          .map((email) => email.trim()), // Convert to array and trim whitespace
   };
 
-  console.log("Editing event with data:", updatedEvent);
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
+    // Convert the attendees string back into an array
+    const updatedEvent = {
+      ...currentEvent,
+      attendees: currentEvent.attendees
+        .split(",")
+        .map((email) => email.trim()), // Convert to array and trim whitespace
+    };
+
+    console.log("Editing event with data:", updatedEvent);
+
+    try {
       const response = await fetch(
-          `http://localhost:5001/api/meeting/edit_meeting/${currentEvent.id}`,
-          {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include", // Ensure cookies are sent
-              body: JSON.stringify(updatedEvent),
-          }
+        `http://localhost:5001/api/meeting/edit_meeting/${currentEvent.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", // Ensure cookies are sent
+          body: JSON.stringify(updatedEvent),
+        }
       );
 
       const result = await response.json();
       if (response.ok) {
-          alert("Event updated successfully!");
-          setEditModalVisible(false);
-          fetchEvents();
+        alert("Event updated successfully!");
+        setEditModalVisible(false);
+        fetchEvents();
       } else {
-          alert(`Error: ${result.error}`);
+        alert(`Error: ${result.error}`);
       }
-  } catch (error) {
+    } catch (error) {
       console.error("Error updating event:", error);
       alert("Something went wrong. Please try again.");
-  }
-};
+    }
+  };
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -267,15 +291,18 @@ const handleEditSubmit = async (e) => {
             <button onClick={handleGoogleAuth}>Sign in with Google</button>
           ) : (
             <>
-              <button
-                onClick={async () => {
-                  setScheduleModalVisible(true);
-                  await fetchMemberEmails();
-                }}
-                className="schedule-button"
-              >
-                Schedule Meeting
-              </button>
+              <div className="user-info">
+                <p>Signed Up as: {email}</p>
+                <button
+                  onClick={async () => {
+                    setScheduleModalVisible(true);
+                    await fetchMemberEmails();
+                  }}
+                  className="schedule-button"
+                >
+                  Schedule Meeting
+                </button>
+              </div>
 
               {scheduleModalVisible && (
                 <div className="modal">
