@@ -7,7 +7,7 @@ const authenticate = require("./authenticate");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
 const router = express.Router();
-const ensureAuthenticated = require("./meeting.js"); // Import the middleware if not already present
+const ensureAuthenticated = require("./meeting.js");
 const { OAuth2Client } = require("google-auth-library");
 
 dotenv.config();
@@ -19,89 +19,136 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-// Multer setup for file uploads (storing in memory)
+// Multer setup for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Create an Event (Requires Authentication)
+// Create an Event (with status field)
 router.post("/", authenticate, upload.single("image"), async (req, res) => {
   try {
-    const { title, date, time } = req.body;
+    const { title, date, time, status = "Private" } = req.body;
 
     if (!title || !date || !time || !req.file) {
-      return res.status(400).json({ success: false, message: "All fields and image are required." });
+      return res.status(400).json({ 
+        success: false, 
+        message: "All fields and image are required." 
+      });
     }
 
-    cloudinary.uploader.upload_stream({ folder: "events" }, async (error, result) => {
-      if (error) {
-        return res.status(500).json({ success: false, message: "Error uploading image to Cloudinary" });
+    cloudinary.uploader.upload_stream(
+      { folder: "events" }, 
+      async (error, result) => {
+        if (error) {
+          return res.status(500).json({ 
+            success: false, 
+            message: "Error uploading image to Cloudinary" 
+          });
+        }
+
+        const newEvent = new Event({
+          title,
+          date,
+          time,
+          image: result.secure_url,
+          createdBy: req.userId,
+          status, // Include status from request (defaults to "Private")
+          googleSheets: [] // Initialize empty array
+        });
+
+        await newEvent.save();
+        res.status(201).json({ 
+          success: true, 
+          event: newEvent 
+        });
       }
-
-      const newEvent = new Event({
-        title,
-        date,
-        time, // Store time
-        image: result.secure_url,
-        createdBy: req.userId,
-      });
-
-      await newEvent.save();
-      res.status(201).json({ success: true, event: newEvent });
-    }).end(req.file.buffer);
+    ).end(req.file.buffer);
   } catch (error) {
     console.error("Error creating event:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
   }
 });
 
-// Fetch all events
+// Fetch events based on user role
 router.get("/", authenticate, async (req, res) => {
   try {
-    let events;
-
-    // Fetch the user based on the userId
-    const user = await User.findById(req.userId).select("status communityDetails");
+    const user = await User.findById(req.userId)
+      .select("status communityDetails");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
     }
 
-    // Check if the logged-in user is a member
-    if (user.status === "member") {
-      // If the user is a member, fetch events by the adminId from the communityDetails
-      const adminId = user.communityDetails[0]?.adminId;
+    let events;
 
+    // For community admins - fetch all their own events
+    if (user.status === "community") {
+      events = await Event.find({ createdBy: req.userId })
+        .sort({ createdAt: -1 });
+    } 
+    // For members - fetch only their admin's events
+    else if (user.status === "member") {
+      const adminId = user.communityDetails[0]?.adminId;
+      
       if (!adminId) {
-        return res.status(400).json({ success: false, message: "Admin ID not found in community details." });
+        return res.status(400).json({ 
+          success: false, 
+          message: "Admin ID not found in community details." 
+        });
       }
 
-      // Fetch events where the createdBy is the adminId of the community
-      events = await Event.find({ createdBy: adminId });
-    } else {
-      // If the user is not a member, fetch events created by the user themselves
-      events = await Event.find({ createdBy: req.userId });
+      events = await Event.find({ createdBy: adminId })
+        .sort({ createdAt: -1 });
+    } 
+    // For other user types (if any)
+    else {
+      events = [];
     }
 
-    res.json({ success: true, events });
+    res.json({ 
+      success: true, 
+      events 
+    });
   } catch (error) {
     console.error("Error fetching events:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
   }
 });
 
 // Delete an event
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Find the event first to check ownership
     const event = await Event.findById(id);
-
+    
     if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Event not found" 
+      });
+    }
+
+    // Verify the requesting user is the event creator
+    if (event.createdBy.toString() !== req.userId) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Unauthorized to delete this event" 
+      });
     }
 
     // Extract Cloudinary public_id from image URL
     const imageUrl = event.image;
-    const publicId = imageUrl.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
+    const publicId = imageUrl.split("/").pop().split(".")[0];
 
     // Delete image from Cloudinary
     await cloudinary.uploader.destroy(`events/${publicId}`);
@@ -109,50 +156,88 @@ router.delete("/:id", async (req, res) => {
     // Delete event from MongoDB
     await Event.findByIdAndDelete(id);
 
-    res.json({ message: "Event and image deleted successfully" });
+    res.json({ 
+      success: true,
+      message: "Event deleted successfully" 
+    });
   } catch (error) {
     console.error("Error deleting event:", error);
-    res.status(500).json({ error: "Error deleting event" });
+    res.status(500).json({ 
+      success: false,
+      message: "Error deleting event",
+      error: error.message 
+    });
   }
 });
 
 // Update an event
 router.put("/:id", authenticate, async (req, res) => {
   try {
-    const { title, date, time } = req.body;
+    const { title, date, time, status } = req.body;
+    
+    // First find the event to check ownership
+    const existingEvent = await Event.findById(req.params.id);
+    
+    if (!existingEvent) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Event not found" 
+      });
+    }
+    
+    // Authorization check - only creator can update
+    if (existingEvent.createdBy.toString() !== req.userId) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Unauthorized to update this event" 
+      });
+    }
+
     const updatedEvent = await Event.findByIdAndUpdate(
       req.params.id,
-      { title, date, time },
+      { title, date, time, status },
       { new: true }
     );
 
-    if (!updatedEvent) {
-      return res.status(404).json({ success: false, message: "Event not found" });
-    }
-
-    res.json({ success: true, event: updatedEvent });
+    res.json({ 
+      success: true, 
+      event: updatedEvent 
+    });
   } catch (error) {
     console.error("Error updating event:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
   }
 });
 
 // Fetch event title
 router.get("/:id/title", async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).select("title"); // Only fetch the title
+    const event = await Event.findById(req.params.id).select("title");
 
     if (!event) {
-      return res.status(404).json({ success: false, message: "Event not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Event not found" 
+      });
     }
 
-    res.json({ title: event.title }); // Send only the title
+    res.json({ 
+      success: true,
+      title: event.title 
+    });
   } catch (error) {
     console.error("Error fetching event title:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
   }
 });
 
+// Email sending route (unchanged)
 
 const oauth2Client = new OAuth2Client(
   process.env.CLIENT_ID,

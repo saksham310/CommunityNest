@@ -7,7 +7,8 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-
+const dashboardRoutes = require("./routes/dashboard"); // Import dashboard routes
+const noticeRoutes = require("./routes/notice"); // Import notice routes
 // Import routes
 const authRoutes = require("./routes/auth");
 const documentRoutes = require("./routes/documents");
@@ -108,6 +109,8 @@ app.use("/api/community", communityRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/google-sheets", googleSheetsRoutes);
 app.use("/api/google", googleAuth.router);
+app.use("/api/dashboard", dashboardRoutes); // Use dashboard routes
+app.use("/api/notice", noticeRoutes); // Use notice routes
 
 // Start server
 const PORT = process.env.PORT || 5001;

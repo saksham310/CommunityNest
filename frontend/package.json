@@ -10,6 +10,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.9",
+    "bootstrap": "^5.3.3",
     "html-docx-js": "^0.1.0",
     "html2pdf.js": "^0.10.3",
     "jodit-react": "^5.2.15",
@@ -18,13 +19,14 @@
     "jspdf-autotable": "^3.0.4",
     "nodemailer": "^6.10.0",
     "react": "^18.3.1",
+    "react-bootstrap": "^2.10.9",
     "react-dom": "^18.3.1",
     "react-google-recaptcha": "^3.1.0",
     "react-icons": "^5.5.0",
+    "react-modal": "^3.16.3",
     "react-router-dom": "^7.3.0",
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
-    
   },
   "scripts": {
     "start": "react-scripts start",
@@ -48,7 +50,6 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
-  
     ]
   },
   "devDependencies": {

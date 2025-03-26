@@ -2,165 +2,126 @@
 .events-page {
     display: flex;
     margin-top: -80px;
-}
-
-.events-content {
+  }
+  
+  .events-content {
     flex: 1;
     padding: 20px;
-}
-
-.create-event-btn {
+  }
+  
+  .create-event-btn {
     background-color: #007bff;
     color: white;
     border: none;
     padding: 10px 15px;
     margin: 10px 0;
     cursor: pointer;
-}
-
-.create-event-btn:hover {
+  }
+  
+  .create-event-btn:hover {
     background-color: #0056b3;
-}
-
-/* Event List */
-.event-list {
+  }
+  
+  /* Event List */
+  .event-list {
     display: grid;
     grid-template-columns: repeat(3, 1fr); /* 3 columns */
     gap: 10px; /* Space between cards */
     margin-top: 20px;
-}
-
-/* Event Card */
-.event-card {
+  }
+  
+  /* Event Card */
+  .event-card {
     display: flex;
     flex-direction: column;
-    align-items: center;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 15px;
     background: #fff;
-    text-align: center;
-    position: relative; /* To position the edit and delete buttons */
-}
+    position: relative; /* To position the dropdown */
+  }
+  
+  /* Event Header (Title, Date, Time, Dropdown) */
+  .event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+    margin-bottom: 10px;
+  }
+  
+  .event-details {
+    flex: 1;
+    text-align: left; /* Ensure text is left-aligned */
+  }
+  
+  .event-details h3 {
+    font-size: 18px;
+    margin: 0 0 10px 0; /* Add margin below the title */
+  }
+  
+  .event-meta {
+    
+    margin-bottom: 10px;
+    gap: 0px; /* Space between date and time */
+    text-align: left; /* Ensure text is left-aligned */
+  }
+  
+  .event-meta p {
+    
+    color: rgb(19, 19, 19);
+    font-size: 15px;
+    text-align: left; /* Ensure text is left-aligned */
+    margin-top: 10px;
+    margin-bottom: 5px;
+    
+  }
 
-/* Event Image */
-.event-image {
+  
+  /* Event Image */
+  .event-image {
     width: 100%;
     height: 180px;
     object-fit: cover;
     border-radius: 8px;
-}
-
-/* Event Info */
-.event-info {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.event-info h3 {
-    font-size: 18px;
-    margin-top: 10px;
-}
-
-.event-info p {
-    margin: 5px 0;
-    color: gray;
-    margin-top: -10px;
-   
-}
-
-/* Positioning Edit and Delete Buttons */
-.event-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px; /* Space above the buttons */
-}
-
-.edit-btn, .delete-btn {
-    padding: 8px 12px;
+  }
+  
+  /* Dropdown Menu */
+  .event-dropdown {
+    position: relative;
+  }
+  
+  .dropdown-toggle {
+    background: none;
     border: none;
+    font-size: 20px;
     cursor: pointer;
-    border-radius: 5px;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-}
-
-/* Edit Button Style */
-.edit-btn {
-    background-color: #4CAF50;
-    color: white;
-}
-
-/* Delete Button Style */
-.delete-btn {
-    background-color: #0056b3;
-    color: white;
-}
-
-
-/* Modal Styles */
-.modal {
-    position: fixed; /* Ensures it stays above other elements */
-    top: 20%;
-    left: 35%;
-    height: 500px; /* Full viewport height */
-    background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000; /* Ensures it appears above other elements */
-}
-
-/* Modal content (form container) */
-.modal-content {
-    background: transparent;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    width: 400px; /* Adjust width as needed */
-    max-width: 90%;
-    z-index: 1001; /* Higher than modal background */
-}
-
-/* Inputs inside modal */
-.modal-content input {
+    padding: 5px;
+    color: rgb(34, 33, 33);
+  }
+  .dropdown-toggle:hover {
+    background: none;
+  }
+  
+  .dropdown-menu {
+    position: absolute;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+  
+  .dropdown-menu button {
     display: block;
     width: 100%;
-    margin: 10px 0;
-    padding: 8px;
-}
-
-/* Buttons inside modal */
-.modal-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px; /* Space between buttons */
-    margin-top: 10px;
-}
-
-.modal-content button {
-    padding: 8px 12px;
-    width: 150px;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
     cursor: pointer;
-    flex: 1; /* Make both buttons equal width */
-    max-width: 120px; /* Set a max width to avoid stretching */
-}
-
-/* Green Post Event button */
-.modal-content button:first-of-type {
-    background: #28a745;
-    color: white;
-    border: none;
-}
-
-/* Red Cancel button */
-.modal-content button:last-of-type {
-    background: red;
-    color: white;
-    border: none;
-}
+  }
+  
+  .dropdown-menu button:hover {
+    background: #f5f5f5;
+  }

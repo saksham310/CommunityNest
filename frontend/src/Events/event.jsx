@@ -15,15 +15,15 @@ const Events = () => {
     date: "",
     time: "",
     image: null,
+    status: "Private", // Default status set to "Private"
   });
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  
+
   const handleEventClick = (eventId) => {
     navigate(`/event/${eventId}`);
   };
-  
 
   const [userStatus, setUserStatus] = useState(null); // Track user status
 
@@ -46,7 +46,7 @@ const Events = () => {
   };
 
   const openEditModal = (event, e) => {
-    e.stopPropagation();  // Prevents the click event from propagating and triggering navigation
+    e.stopPropagation(); // Prevents the click event from propagating and triggering navigation
     setSelectedEvent(event);
     setEditModal(true);
   };
@@ -56,15 +56,17 @@ const Events = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get("http://localhost:5001/api/events", {
-        headers: { Authorization: `Bearer ${token}` }, // Send token
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      setEvents(res.data.events); // Update state with events
+      console.log("Fetched events:", res.data.events); // Debugging
+      setEvents(res.data.events);
     } catch (error) {
       console.error("Error fetching events:", error);
     }
   };
 
+  // Update the handleChange function to include status
   const handleChange = (e) => {
     setEventData({ ...eventData, [e.target.name]: e.target.value });
   };
@@ -90,39 +92,78 @@ const Events = () => {
     const formData = new FormData();
     formData.append("title", eventData.title);
     formData.append("date", eventData.date);
-    formData.append("time", eventData.time); // Include time
+    formData.append("time", eventData.time);
     formData.append("image", eventData.image);
+    formData.append("status", eventData.status); // Make sure this is included
+
+    console.log("FormData contents:");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
 
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
 
-      await axios.post("http://localhost:5001/api/events", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.post(
+        "http://localhost:5001/api/events",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      console.log("Event created:", response.data);
       fetchEvents();
       setShowModal(false);
-      setEventData({ title: "", date: "", time: "", image: null });
+      setEventData({
+        title: "",
+        date: "",
+        time: "",
+        image: null,
+        status: "Private",
+      });
     } catch (error) {
-      console.error("Error creating event:", error);
+      console.error(
+        "Error creating event:",
+        error.response?.data || error.message
+      );
+      alert(
+        `Error creating event: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this event?"
-    );
-
-    if (!confirmDelete) return; // If user cancels, exit the function
-
+  const deleteEvent = async (eventId) => {
     try {
-      await axios.delete(`http://localhost:5001/api/events/${id}`);
-      fetchEvents(); // Refresh the event list
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.delete(
+        `http://localhost:5001/api/events/${eventId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+  
+      if (response.data.success) {
+        // Update your events state to remove the deleted event
+        setEvents(events.filter(event => event._id !== eventId));
+        alert('Event deleted successfully');
+      } else {
+        alert(response.data.message || 'Failed to delete event');
+      }
     } catch (error) {
-      console.error("Error deleting event:", error);
+      console.error('Error deleting event:', error);
+      alert(error.response?.data?.message || 'Error deleting event');
     }
   };
 
@@ -146,6 +187,31 @@ const Events = () => {
     }
   };
 
+  // Function to toggle event status
+  const toggleEventStatus = async (eventId, currentStatus) => {
+    const newStatus = currentStatus === "Private" ? "Announcement" : "Private";
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5001/api/events/${eventId}`,
+        { status: newStatus },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Update the local state without refetching all events
+      setEvents(
+        events.map((event) =>
+          event._id === eventId ? { ...event, status: newStatus } : event
+        )
+      );
+    } catch (error) {
+      console.error("Error updating event status:", error);
+    }
+  };
+
   return (
     <div className="events-page">
       <Sidebar />
@@ -153,7 +219,10 @@ const Events = () => {
         <h1>Events</h1>
         {/* Conditionally render the "Create Event" button */}
         {userStatus === "community" && (
-          <button className="create-event-btn" onClick={() => setShowModal(true)}>
+          <button
+            className="create-event-btn"
+            onClick={() => setShowModal(true)}
+          >
             Create Event
           </button>
         )}
@@ -163,38 +232,67 @@ const Events = () => {
             <p>No events scheduled yet.</p>
           ) : (
             events.map((event, index) => (
-              <div className="event-card" key={event._id} onClick={() => handleEventClick(event._id)}>
+              <div
+                className="event-card"
+                key={event._id}
+                onClick={() => handleEventClick(event._id)}
+              >
+                {/* Event Header (Title, Date, Time, Dropdown) */}
+                <div className="event-header">
+                  <div className="event-details">
+                    <h3>{event.title}</h3>
+                    <div className="event-meta">
+                      <p>Date: {event.date}</p>
+                      <p>Time: {event.time}</p>
+                    </div>
+                  </div>
+
+                  {/* Three-dot dropdown menu */}
+                  {userStatus === "community" && (
+                    <div className="event-dropdown">
+                      <button
+                        className="dropdown-toggle"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent event card click
+                          setSelectedEvent(event);
+                        }}
+                      >
+                        &#8942; {/* Three dots icon */}
+                      </button>
+                      {selectedEvent?._id === event._id && (
+                        <div className="dropdown-menu">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleEventStatus(event._id, event.status);
+                              setSelectedEvent(null);
+                            }}
+                          >
+                            {event.status === "Announcement"
+                              ? "Remove Announcement"
+                              : "Publish to Announcement"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteEvent(event._id);
+                              setSelectedEvent(null);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Event Image */}
                 <img
                   src={event.image}
                   alt={event.title}
                   className="event-image"
                 />
-          
-                <div className="event-info">
-                  <h3>{event.title}</h3>
-                  <p>Date: {event.date}</p>
-                  <p>Time: {event.time}</p>
-
-                  {/* Button container with conditional rendering for edit and delete */}
-                  <div className="event-actions">
-                    {userStatus === "community" && (
-                      <>
-                        <button
-                          className="edit-btn"
-                          onClick={(e) => openEditModal(event, e)}  // Pass the click event
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDelete(event._id)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
               </div>
             ))
           )}
@@ -229,7 +327,6 @@ const Events = () => {
                 onChange={handleChange}
                 required
               />
-
               <input
                 type="file"
                 name="image"
@@ -250,6 +347,7 @@ const Events = () => {
         </div>
       )}
 
+      {/* Edit Modal */}
       {editModal && selectedEvent && (
         <div className="modal">
           <div className="modal-content">
