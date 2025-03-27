@@ -1,9 +1,60 @@
 const express = require('express');
 const router = express.Router();
 const Notice = require('../models/Notice');
+const Notification = require('../models/Notification');
+const Community = require('../models/Community');
 const User = require('../models/User');
 const authenticate = require('./authenticate');
 
+// Update only the sendNoticeNotifications function
+const sendNoticeNotifications = async (io, notice, userId, communityId) => {
+    try {
+      const community = await Community.findById(communityId)
+        .populate('members', '_id');
+      
+      if (!community) return;
+  
+      const sender = await User.findById(userId, 'username name');
+      const membersToNotify = community.members
+        .filter(member => member._id.toString() !== userId.toString())
+        .map(member => member._id.toString()); // Ensure string IDs
+  
+      if (membersToNotify.length === 0) return;
+  
+      const notifications = await Promise.all(membersToNotify.map(async memberId => {
+        const notification = new Notification({
+          recipient: memberId,
+          sender: userId,
+          message: `New notice: ${notice.content.substring(0, 50)}${notice.content.length > 50 ? '...' : ''}`,
+          type: 'notice',
+          relatedEntity: notice._id
+        });
+        await notification.save();
+        
+        // Prepare the complete notification data
+        const notificationData = {
+          ...notification.toObject(),
+          sender: {
+            _id: sender._id,
+            username: sender.username,
+            name: sender.name
+          },
+          // Ensure createdAt is properly formatted
+          createdAt: notification.createdAt.toISOString()
+        };
+        
+        // Emit to the user's specific room with consistent naming
+        io.to(`user_${memberId}`).emit('new-notification', notificationData);
+        
+        return notification;
+      }));
+  
+      console.log(`Sent ${notifications.length} notifications`);
+    } catch (error) {
+      console.error('Notification error:', error);
+    }
+};
+  
 // Get all notices for community
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -38,60 +89,60 @@ router.get('/', authenticate, async (req, res) => {
 
 // Create new notice
 router.post('/', authenticate, async (req, res) => {
-  try {
-    const { content } = req.body;
-    
-    if (!content) {
-      return res.status(400).json({ 
+    try {
+      const { content } = req.body;
+      const io = req.app.get('io');
+      const user = await User.findById(req.userId);
+      
+      if (!content) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Notice content is required" 
+        });
+      }
+  
+      if (!user || user.status !== 'community') {
+        return res.status(403).json({ 
+          success: false, 
+          message: "Only community admins can publish notices" 
+        });
+      }
+  
+      if (!user.managedCommunity) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "You don't manage any community" 
+        });
+      }
+  
+      const notice = new Notice({
+        content,
+        createdBy: req.userId,
+        communityId: user.managedCommunity
+      });
+  
+      await notice.save();
+      
+      // Get populated notice for response
+      const populatedNotice = await Notice.findById(notice._id)
+        .populate('createdBy', 'username');
+  
+      // Send notifications to community members
+      await sendNoticeNotifications(io, notice, req.userId, user.managedCommunity);
+      
+      res.json({ 
+        success: true, 
+        notice: populatedNotice 
+      });
+    } catch (error) {
+      console.error('Error creating notice:', error);
+      res.status(500).json({ 
         success: false, 
-        message: "Notice content is required" 
+        message: 'Error creating notice',
+        error: error.message 
       });
     }
-
-    const user = await User.findById(req.userId);
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
-      });
-    }
-
-    if (user.status !== 'community') {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Only community accounts can publish notices" 
-      });
-    }
-
-    if (!user.managedCommunity) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "You don't manage any community" 
-      });
-    }
-
-    const notice = new Notice({
-      content,
-      createdBy: req.userId,
-      communityId: user.managedCommunity
-    });
-
-    await notice.save();
-    
-    res.json({ 
-      success: true, 
-      notice: await notice.populate('createdBy', 'username') 
-    });
-  } catch (error) {
-    console.error('Error creating notice:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error creating notice',
-      error: error.message 
-    });
-  }
-});
+  });
 
 // Update notice
 router.put('/:id', authenticate, async (req, res) => {

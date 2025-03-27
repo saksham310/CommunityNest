@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./dashboard.css";
 import Sidebar from "../Sidebar/sidebar";
+import { useNotifications } from "../contexts/NotificationContext";
 import {
   FaCalendarAlt,
   FaUserCheck,
@@ -12,9 +13,7 @@ import {
   FaPlus,
 } from "react-icons/fa";
 import Modal from "react-modal";
-import { FiChevronRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-// import { format } from 'date-fns';
 
 Modal.setAppElement("#root");
 
@@ -27,35 +26,29 @@ const Dashboard = () => {
   const [noticeContent, setNoticeContent] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
+  
+  const { fetchNotifications } = useNotifications();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5001/api/dashboard",
-          {
+        const [dashboardRes, noticesRes] = await Promise.all([
+          axios.get("http://localhost:5001/api/dashboard", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const noticesResponse = await axios.get(
-          "http://localhost:5001/api/notice",
-          {
+          }),
+          axios.get("http://localhost:5001/api/notice", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+          }).catch(() => ({ data: { notices: [] } }))
+        ]);
 
-        setAnnouncements(response.data.announcements);
-        setNotices(noticesResponse.data.notices || []);
-        setIsAdmin(response.data.isAdmin);
-
-        if (response.data.stats) {
-          setStats(response.data.stats);
-        }
+        setAnnouncements(dashboardRes.data.announcements);
+        setNotices(noticesRes.data.notices);
+        setIsAdmin(dashboardRes.data.isAdmin);
+        setStats(dashboardRes.data.stats || { departments: 0, members: 0, events: 0 });
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -67,43 +60,94 @@ const Dashboard = () => {
   const handleSaveNotice = async () => {
     try {
       const token = localStorage.getItem("token");
-      let response;
-
-      if (currentNotice) {
-        // Update existing notice
-        response = await axios.put(
-          `http://localhost:5001/api/notice/${currentNotice._id}`,
-          { content: noticeContent },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        // Create new notice
-        response = await axios.post(
-          "http://localhost:5001/api/notice",
-          { content: noticeContent },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+      if (!token) {
+        alert("No authentication token found. Please log in again.");
+        return;
       }
-
-      if (response.data.success) {
-        // Refresh notices
-        const noticesResponse = await axios.get(
-          "http://localhost:5001/api/notice",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setNotices(noticesResponse.data.notices);
-
-        setCurrentNotice(null);
-        setModalIsOpen(false);
-        setNoticeContent("");
+  
+      // Debug: Log what we're about to send
+      console.log("Saving notice:", {
+        currentNotice: currentNotice?._id,
+        noticeContent,
+        isUpdate: !!currentNotice
+      });
+  
+      const response = currentNotice
+        ? await axios.put(
+            `http://localhost:5001/api/notice/${currentNotice._id}`,
+            { content: noticeContent },
+            { 
+              headers: { Authorization: `Bearer ${token}` },
+              validateStatus: () => true // Ensure we get the response even on error
+            }
+          )
+        : await axios.post(
+            "http://localhost:5001/api/notice",
+            { content: noticeContent },
+            { 
+              headers: { Authorization: `Bearer ${token}` },
+              validateStatus: () => true
+            }
+          );
+  
+      // Debug: Log the full response
+      console.log("API Response:", response);
+  
+      // Check for success (some APIs use different success indicators)
+      if (response.status >= 200 && response.status < 300) {
+        // Some APIs return data directly, others wrap in 'data' property
+        const success = response.data?.success ?? true;
+        const message = response.data?.message;
+  
+        if (!success) {
+          alert(message || "Notice saved but server returned unsuccessful status");
+          return;
+        }
+  
+        // Refresh data
+        try {
+          const [noticesRes] = await Promise.all([
+            axios.get("http://localhost:5001/api/notice", {
+              headers: { Authorization: `Bearer ${token}` }
+            }),
+            fetchNotifications()
+          ]);
+          
+          setNotices(noticesRes.data.notices || noticesRes.data);
+          setModalIsOpen(false);
+          setNoticeContent("");
+          
+          alert(message || "Notice saved successfully!");
+        } catch (refreshError) {
+          console.error("Error refreshing data:", refreshError);
+          alert("Notice saved but couldn't refresh data. Please reload the page.");
+        }
       } else {
-        alert(response.data.message || "Failed to save notice");
+        // Handle HTTP error statuses
+        const errorMessage = response.data?.message || 
+                           response.data?.error || 
+                           `Server returned status ${response.status}`;
+        alert(`Error: ${errorMessage}`);
       }
     } catch (error) {
-      console.error("Error saving notice:", error);
-      alert(error.response?.data?.message || "An error occurred");
+      console.error("Full error saving notice:", error);
+      
+      // More detailed error message
+      let errorMessage = "An error occurred while saving the notice";
+      if (error.response) {
+        // Server responded with error status
+        errorMessage = error.response.data?.message || 
+                      error.response.data?.error ||
+                      `Server error (${error.response.status})`;
+      } else if (error.request) {
+        // Request was made but no response
+        errorMessage = "No response from server. Check your connection.";
+      } else {
+        // Something else happened
+        errorMessage = error.message || "Unknown error occurred";
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -115,7 +159,6 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Refresh notices
         const noticesResponse = await axios.get(
           "http://localhost:5001/api/notice",
           {
