@@ -1,244 +1,447 @@
-/* General Styles */
-.document-repository-page {
-    display: flex;
-    min-height: 100vh;
-    background-color: #f9f9f9;
-    font-family: 'Arial', sans-serif;
-    padding-left: 290px;
-    padding-top: 10px;
-  }
-  /* Centering messages */
+/* Document Repository Container */
+.document-repository-container {
+  display: flex;
+  min-height: 100vh;
+  margin-top: 80px;
+}
+
+.document-repository-main {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 275px;
+  background-color: #f8fafc;
+}
+.document-repository-main h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+/* Header Styles */
+.repository-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+/* .header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+} */
+
+.repository-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0; /* Remove default margin */
+}
+
+.department-badge {
+  background-color: #e0e7ff;
+  color: #3b82f6;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
 .error-message {
-  text-align: center;
-  font-size: 16px;
-  font-weight: regular;
-  margin-top: 20px;
-  padding-left: 155px;
-  
+  flex-basis: 100%;
+  color: #dc2626;
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
-.p{
-  text-align: center;
-  font-size: 16px;
-  font-weight: regular;
-  margin-top: 20px;
-  padding-left: 155px;
-  
+
+/* Button Styles (keep your existing button styles) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
 }
-/* No documents message */
 
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
 
-  .document-repository-content {
-    flex: 1;
-    padding: 30px;
-  }
-  
-  .document-repository-title {
-    font-size: 30px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 10px;
-    
-   
-  }
-  
-  .document-repository-content p {
-    font-size: 16px;
-    color: #555;
-    margin-bottom: 20px;
-    max-width: 800px;
-    
-  }
-  
-  /* Document Cards */
-  .document-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: flex-start;
-  }
-  
-  .document-card {
-    display: flex;
+.btn-primary:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: #3b82f6;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .repository-header {
     flex-direction: column;
-    justify-content: space-between;
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 300px;
-    position: relative;
-    transition: transform 0.2s, box-shadow 0.2s;
+    align-items: flex-start;
   }
   
-  .document-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  .document-info {
-    display: flex;
+  .header-title-group {
     flex-direction: column;
-    margin-bottom: 20px;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
   
-  .document-info h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 10px;
-  }
-  
-  .document-info p {
-    font-size: 14px;
-    color: #888;
-    margin-top: 4px;
-  }
-  
-  /* Button Styles */
-  .view-btn, .edit-btn, .delete-btn {
-    padding: 8px 15px;
-    font-size: 14px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 10px;
-  }
-  
-  .view-btn {
-    background-color: #0077ff;
-    color: white;
-    margin-right: 5px;
-  }
-  
-  .view-btn:hover {
-    background-color: #005bb5;
-  }
-  
-  .edit-btn {
-    background-color: #f0ad4e;
-    color: white;
-    margin-right: 5px;
-  }
-  
-  .edit-btn:hover {
-    background-color: #ec971f;
-  }
-  
-  .delete-btn {
-    background-color: transparent;
-    color: #a32525;
-    border: none;
-    font-size: 18px;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    cursor: pointer;
-    transition: color 0.3s ease;
-  }
-  
-  .delete-btn:hover {
-    color: #f6d4d4;
-  }
-  
-  /* Document Footer (Last Updated) */
-  .document-footer {
-    position: absolute;
-    bottom: 10px;
-    right: 15px;
-    font-size: 12px;
-    color: #fcfafa;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .document-repository-title {
-      font-size: 24px;
-    }
-  
-    .document-repository-content p {
-      font-size: 14px;
-      max-width: 100%;
-    }
-  
-    .create-new-btn {
-      font-size: 14px;
-      padding: 8px 16px;
-    }
-  
-    .document-cards {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  
-    .document-card {
-      width: 100%;
-      max-width: none;
-    }
-  
-    .document-info h3 {
-      font-size: 16px;
-    }
-  
-    .document-info p {
-      font-size: 12px;
-    }
-  
-    .view-btn, .edit-btn, .delete-btn {
-      font-size: 12px;
-      padding: 6px 12px;
-    }
-  }
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
+  .action-buttons {
     width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Make sure this isn't set to display: none */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-end;
   }
-  .modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 5px;
-  }
-  
-  .top-action-section{
-    display: flex;
-    justify-content: flex-end; /* Aligns content to the right */
-    align-items: center;
-    margin-bottom: -40px;
+}
 
-  }
-  .create-new-btn,
-  .top-action-section button {
-    display: inline-block; /* Ensures both behave the same */
-    padding: 10px 15px; /* Consistent padding */
-    font-size: 16px; /* Ensures same text size */
-    border: none;
-    text-decoration: none; /* Removes default styles from Link */
-    background-color: #007bff; /* Same button color */
-    color: white;
-    border-radius: 5px; /* Rounded corners */
-    cursor: pointer;
-    text-align: center;
-    
+
+
+/* Document Sections */
+.documents-section, .files-section {
+  margin-bottom: 3rem;
+}
+
+.documents-section h2, .files-section h2 {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  padding-bottom: 0.75rem;
+  color: #787878;
+  text-align: left;
+}
+
+.empty-state {
+  color: #64748b;
+  padding: 2rem;
+  text-align: center;
+  background-color: white;
+  border-radius: 0.75rem;
+  border: 1px dashed #e2e8f0;
+}
+
+/* Document Grid */
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.75rem;
+}
+
+/* Document Card */
+.document-card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.document-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
+}
+
+.card-icon {
+  margin-bottom: 1rem;
+  color: #3b82f6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.file-type-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #e0e7ff;
+  color: #3b82f6;
+  border-radius: 9999px;
+}
+
+.card-content {
+  text-align: center;
+}
+
+.card-title {
+  color: #1e293b;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-meta {
+  color: #64748b;
+  font-size: 0.8125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+.meta-label {
+  font-weight: 500;
+}
+
+/* Card Actions */
+.card-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.375rem;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-toggle:hover {
+  background-color: #f1f5f9;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 180px;
+  z-index: 10;
+  display: none;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  color: #334155;
+  font-size: 0.875rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8fafc;
+  color: #1e40af;
+}
+
+.dropdown-item svg {
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-content h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #1e293b;
+}
+
+.file-upload-area {
+  margin: 1rem 0;
+}
+
+.file-upload-label {
+  display: block;
+  padding: 1.5rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #f8fafc;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-upload-label:hover {
+  border-color: #94a3b8;
+}
+
+#file-upload {
+  display: none;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .document-repository-main {
+    margin-left: 0;
+    padding: 1.5rem;
   }
   
-  .create-new-btn:hover,
-  .top-action-section button:hover {
-    background-color: #0056b3; /* Darker shade on hover */
-  }
-  h3 {
-    text-align: left; /* Ensures left alignment */
-    margin-top: 50px;
-  }
-  h4{
-    text-align: center;
-    margin-top: 40px;
+  .documents-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
   
+  .action-buttons {
+    flex-direction: column;
+  }
+}
+
+/* Main header container */
+.main-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+/* Main title row with back button and heading */
+.main-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Back button styles */
+.back-button {
+  /* background-color: #e0f2fe; Light blue background */
+  background-color: #fcfcfc;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: #cfe7f4;
+  transform: translateX(-2px);
+}
+
+.back-button svg {
+  color: #0369a1;
+  width: 20px;
+  height: 20px;
+}
+
+/* Keep your existing header styles */
+.repository-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .repository-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .action-buttons {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

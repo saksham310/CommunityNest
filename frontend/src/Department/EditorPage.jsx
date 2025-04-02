@@ -3,7 +3,8 @@ import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import JoditEditor from "jodit-react";
 import Sidebar from "../Sidebar/sidebar.jsx";
-import "./DocumentRepository.css";
+import { FiArrowLeft, FiSave, FiX } from "react-icons/fi";
+import "./EditorPage.css"; // Renamed CSS file for specificity
 
 const EditorPage = () => {
   const { id, department } = useParams();
@@ -14,9 +15,10 @@ const EditorPage = () => {
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5001/api/document";
 
-  const editor = useRef(null); // Create a ref for JoditEditor
-  const editorContentRef = useRef(""); // Ref to store the editor content
-
+  const editor = useRef(null);
+  const editorContentRef = useRef("");
+  const [departmentName, setDepartmentName] = useState("");
+  
   useEffect(() => {
     if (id) {
       setLoading(true);
@@ -26,7 +28,7 @@ const EditorPage = () => {
         .then((res) => {
           const doc = res.data.document;
           setDocumentTitle(doc.title);
-          editorContentRef.current = doc.content; // Set editor content in ref
+          editorContentRef.current = doc.content;
           setIsEditing(true);
         })
         .catch((err) => {
@@ -41,99 +43,109 @@ const EditorPage = () => {
 
   const editorConfig = {
     readonly: false,
-    height: 600,
-    tabIndex: 0, // Ensure the editor is focusable
-    autofocus: false,
+    height: "calc(100vh - 300px)",
+    minHeight: 400,
+    buttons: ["bold", "italic", "underline", "link", "ul", "ol", "image"],
+    uploader: {
+      insertImageAsBase64URI: true,
+    },
+    style: {
+      fontFamily: "'Inter', sans-serif",
+      fontSize: "16px",
+    },
   };
 
   const saveDocument = () => {
-    if (!documentTitle.trim() || !editorContentRef.current.trim()) {
-      alert("Title and content cannot be empty!");
+    if (!documentTitle.trim()) {
+      setError("Document title cannot be empty!");
       return;
     }
-  
+
     const userId = localStorage.getItem("userId");
-  
-    if (!userId) {
-      alert("User ID not found. Please log in again.");
-      return;
-    }
-  
     const payload = {
       title: documentTitle,
-      content: editorContentRef.current, // Ensure content is properly captured
+      content: editorContentRef.current,
       department,
-      ...(isEditing ? { id, userId } : { userId }), // Ensure `id` is sent when editing
+      userId,
+      ...(isEditing && { id }),
     };
-  
-    console.log("Sending payload:", payload); // Debugging
-  
+
     setLoading(true);
     setError("");
-  
+
     axios
-      .put(`${backendUrl}/editDocument`, payload) // Using PUT for updates
+      .put(`${backendUrl}/editDocument`, payload)
       .then((res) => {
-        console.log("Server response:", res.data);
         if (res.data.success) {
-          alert(res.data.message);
           navigate(`/department/${department}/documents`);
         }
       })
       .catch((err) => {
-        console.error("Error saving document:", err);
-        setError("An error occurred while saving the document.");
+        setError(err.response?.data?.message || "Failed to save document");
       })
       .finally(() => {
         setLoading(false);
       });
   };
-  
 
   return (
-    <div className="document-repository-page">
+    <div className="editor-page-container">
       <Sidebar />
-      <div className="document-repository-content">
-        <h2>{isEditing ? "Edit Document" : "Create New Document"}</h2>
+
+      <main className="editor-main-content">
+        <header className="editor-header">
+          <button
+            className="back-button"
+            onClick={() =>
+              navigate(`/department/${department}/documents`, {
+                state: { departmentName: departmentName }, // Pass the name explicitly
+              })
+            }
+          >
+            <FiArrowLeft />
+          </button>
+
+          <h1>{isEditing ? "Edit Documents" : "Create New Document"}</h1>
+        </header>
 
         {error && <div className="error-message">{error}</div>}
 
-        <input
-          type="text"
-          className="title-input"
-          placeholder="Enter document title"
-          value={documentTitle}
-          onChange={(e) => setDocumentTitle(e.target.value)}
-        />
+        <div className="editor-form-container">
+          <input
+            type="text"
+            className="document-title-input"
+            placeholder="Document Title"
+            value={documentTitle}
+            onChange={(e) => setDocumentTitle(e.target.value)}
+            required
+          />
 
-        <JoditEditor
-          ref={editor}
-          value={editorContentRef.current} // Use the ref value
-          onChange={(newContent) => {
-            editorContentRef.current = newContent; // Update content in ref
-          }}
-          config={editorConfig}
-          onBlur={() => {
-            // Optional: Save content to state when editor loses focus
-            // setEditorContent(editorContentRef.current);
-          }}
-        />
+          <div className="editor-wrapper">
+            <JoditEditor
+              ref={editor}
+              value={editorContentRef.current}
+              onChange={(newContent) => (editorContentRef.current = newContent)}
+              config={editorConfig}
+            />
+          </div>
 
-        <button className="save-btn" onClick={saveDocument} disabled={loading}>
-          {loading
-            ? "Saving..."
-            : isEditing
-            ? "Save Changes"
-            : "Create Document"}
-        </button>
-
-        <button
-          className="cancel-btn"
-          onClick={() => navigate(`/department/${department}/documents`)}
-        >
-          Cancel
-        </button>
-      </div>
+          <div className="editor-actions">
+            <button
+              className="save-button"
+              onClick={saveDocument}
+              disabled={loading}
+            >
+              <FiSave /> {loading ? "Saving..." : "Save Document"}
+            </button>
+            <button
+              className="cancel-button"
+              onClick={() => navigate(`/department/${department}/documents`)}
+            >
+              <FiX /> Cancel
+            </button>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

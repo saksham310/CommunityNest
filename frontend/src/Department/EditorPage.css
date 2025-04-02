@@ -1,129 +1,193 @@
-/* Basic layout and styling for the page */
-.document-repository-page {
-    display: flex;
-    min-height: 100vh;
-    background-color: #f4f7fc;
-    margin-top: 200px;
+/* Main Layout */
+.editor-page-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  margin-top: 70px;
+}
+
+.editor-main-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 275px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+/* Header Styles */
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.editor-header h1{
+  font-size: 20px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 0px;
+  text-align: left;
+
+}
+
+.back-button {
+  background-color: #e0f2fe;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: #bae6fd;
+  transform: translateX(-2px);
+}
+
+.back-button svg {
+  color: #0369a1;
+  width: 20px;
+  height: 20px;
+}
+
+h1 {
+  font-size: 1.75rem;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* Form Container */
+.editor-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+/* Action Buttons - Now in same row */
+.editor-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+/* Input Field */
+.document-title-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.document-title-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Editor Styles */
+.editor-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  height: 500px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.save-button, .cancel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  
+}
+
+.save-button {
+  background-color: #3b82f6;
+  color: white;
+  height: 30px;
+  padding: 10px;
+}
+
+.save-button:hover {
+  background-color: #2563eb;
+}
+
+.save-button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  background-color: #f1f5f9;
+  color: #64748b;
+  height: 30px;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.cancel-button:hover {
+  background-color: #e2e8f0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .editor-actions {
+    flex-direction: row;
+    justify-content: space-between;
   }
   
-  .document-repository-content {
+  .save-button, .cancel-button {
     flex: 1;
-    padding: 20px;
-    max-width: 900px;
-    margin: 20px auto;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    justify-content: center;
   }
-  .jodit-container {
-    flex-grow: 1; /* Allow editor to grow */
-    height: 100%;
-    min-height: 500px; /* Set a reasonable minimum height */
-    max-height: calc(100vh - 150px); /* Adjust based on header and buttons */
-  }
-  
-  .jodit-workplace {
-    height: 100% !important; /* Ensure the editing area takes full height */
-  }
-  
-  h2 {
-    font-size: 2rem;
-    margin-bottom: 20px;
-    text-align: center;
-    color: #333;
+}
+/* Error Message */
+.error-message {
+  padding: 1rem;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border-radius: 0.375rem;
+  margin-bottom: 1.5rem;
+
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .editor-main-content {
+    margin-left: 0;
+    padding: 1rem;
   }
   
-  .title-input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1rem;
-    color: #333;
-    box-sizing: border-box;
-  }
-  
-  .title-input:focus {
-    border-color: #007bff;
-    outline: none;
-  }
-  
-  /* Editor styling */
-  .jodit-container {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 20px;
-    background-color: #fafafa;
-  }
-  
-  .jodit-editor {
-    font-size: 1rem;
-    line-height: 1.5;
-    min-height: 300px;
-    padding: 10px;
-  }
-  
-  /* Button styling */
-  button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .save-btn {
-    background-color: #28a745;
-    color: white;
-    margin-right: 10px;
-  }
-  
-  .save-btn:hover {
-    background-color: #218838;
-  }
-  
-  .cancel-btn {
-    background-color: #dc3545;
-    color: white;
-  }
-  
-  .cancel-btn:hover {
-    background-color: #c82333;
-  }
-  
-  /* Adjust button alignment */
-  button + button {
-    margin-top: 10px;
-  }
-  
-  /* Flex layout for input and editor section */
-  .editor-section {
-    display: flex;
+  .editor-header {
     flex-direction: column;
-    gap: 15px;
+    align-items: flex-start;
   }
   
-  /* Small devices support (Mobile-first approach) */
-  @media (max-width: 600px) {
-    .document-repository-content {
-      margin: 10px;
-      padding: 15px;
-    }
-  
-    h2 {
-      font-size: 1.5rem;
-    }
-  
-    .title-input {
-      font-size: 0.9rem;
-    }
-  
-    .save-btn, .cancel-btn {
-      width: 100%;
-      font-size: 0.9rem;
-    }
+  .action-buttons {
+    flex-direction: column;
   }
   
+  .save-button, .cancel-button {
+    width: 100%;
+  }
+}

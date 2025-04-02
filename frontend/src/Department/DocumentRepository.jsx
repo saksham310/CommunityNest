@@ -1,180 +1,155 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import Sidebar from "../Sidebar/sidebar.jsx";
-import Modal from "./Modal.jsx";
 import "./DocumentRepository.css";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom"; // Import useNavigate at the top
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { FiArrowLeft } from "react-icons/fi"; // Add this with your other icon imports
+import {
+  FiFile,
+  FiMoreVertical,
+  FiDownload,
+  FiEdit2,
+  FiTrash2,
+  FiPlus,
+  FiUpload,
+} from "react-icons/fi";
 
 const DocumentRepositoryPage = () => {
   const { department } = useParams();
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
-  const [files, setFiles] = useState([]); // State for uploaded files
-  const [selectedDocument, setSelectedDocument] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [files, setFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
-  const backendUrl = "http://localhost:5001/api/document";
-  const fileBackendUrl = "http://localhost:5001/api/file"; // File backend URL
-  const navigate = useNavigate(); // Add this inside your component
-  const [selectedFile, setSelectedFile] = useState(null); // State for file
-  const [, setIsUploadModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [fileContent, setFileContent] = useState(null); // New state for file content
-  // Get userId and role from localStorage
-  const userId = localStorage.getItem("userId");
-  const userRole = localStorage.getItem("status"); // "community" or "member"
-
   const [adminId, setAdminId] = useState(null);
+  const userId = localStorage.getItem("userId");
+  const userRole = localStorage.getItem("status");
+  const backendUrl = "http://localhost:5001/api/document";
+  const fileBackendUrl = "http://localhost:5001/api/file";
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Inside your component:
+  const location = useLocation();
+  const [departmentName, setDepartmentName] = useState(
+    location.state?.departmentName || ""
+  );
+
   useEffect(() => {
     if (!userId) {
-      setErrorMessage("User is not logged in.");
+      setErrorMessage("Please login to access documents");
       navigate("/login");
       return;
     }
 
-    // If the user is a "member", fetch adminId first
     if (userRole === "member") {
       axios
         .get(`http://localhost:5001/api/users/getCommunityDetails/${userId}`)
         .then((res) => {
-          if (res.data && res.data.communityDetails.length > 0) {
+          if (res.data?.communityDetails?.[0]?.adminId) {
             const adminIdFromDB = res.data.communityDetails[0].adminId;
             setAdminId(adminIdFromDB);
-            console.log("Fetched adminId for member:", adminIdFromDB);
-
-            // Fetch documents and files after adminId is set
             fetchDocumentsAndFiles(department, adminIdFromDB);
-          } else {
-            setErrorMessage("Failed to retrieve admin details.");
           }
         })
-        .catch((err) => {
-          console.error("Error fetching adminId:", err);
-          setErrorMessage("Failed to load community details.");
-        });
+        .catch(console.error);
     } else {
-      // Fetch documents and files for community/admin role
       fetchDocumentsAndFiles(department, userId);
     }
   }, [department, userId, userRole]);
 
-  
+  useEffect(() => {
+    // First check if we got the name from navigation state
+    if (location.state?.departmentName) {
+      setDepartmentName(location.state.departmentName);
+      return;
+    }
 
-  // Function to fetch both documents and files
-  const fetchDocumentsAndFiles = (dept, fetchUserId) => {
-    let noDocuments = false;
-    let noFiles = false;
+    // Fallback: Fetch from API if not in state
+    const fetchDepartmentName = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5001/api/department/getDepartment/${department}`
+        );
+        setDepartmentName(response.data.name);
+      } catch (error) {
+        console.error("Error fetching department name:", error);
+        setDepartmentName(department); // Fallback to ID if all else fails
+      }
+    };
 
-    console.log("Fetching documents for user:", fetchUserId); // Debugging
+    if (department) {
+      fetchDepartmentName();
+    }
+  }, [department, location.state]);
 
-    // Fetch documents
-    axios
-      .get(
-        `${backendUrl}/getDocumentsByDepartmentAndUser/${dept}/${fetchUserId}`
-      )
-      .then((res) => {
-        if (res.data.documents.length === 0) {
-          noDocuments = true;
-        }
-        setDocuments(res.data.documents);
-        console.log("Documents fetched:", res.data.documents); // Debugging
-      })
-      .catch((err) => {
-        noDocuments = true;
-        console.error("Error fetching documents:", err);
-      });
+  const fetchDocumentsAndFiles = async (dept, fetchUserId) => {
+    try {
+      const [docsRes, filesRes] = await Promise.all([
+        axios.get(
+          `${backendUrl}/getDocumentsByDepartmentAndUser/${dept}/${fetchUserId}`
+        ),
+        axios.get(
+          `${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`
+        ),
+      ]);
 
-  // Fetch files
-axios
-.get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`)
-.then((res) => {
-  if (res.data.success) {
-    setFiles(
-      res.data.files.map((file) => ({
-        ...file,
-        filePath: `http://localhost:5001/uploads/${file.filePath}`, // Adjust file path
-      }))
-    );
-    console.log("Files fetched:", res.data.files);
-  } else {
-    console.error("No files found or error in response", res.data.message);
-  }
-})
-.catch((err) => {
-  console.error("Error fetching files:", err.response ? err.response.data : err.message);
-});
+      setDocuments(docsRes.data.documents || []);
+      setFiles(
+        (filesRes.data.files || []).map((file) => ({
+          ...file,
+          filePath: `http://localhost:5001/uploads/${file.filePath}`,
+        }))
+      );
 
+      if (!docsRes.data.documents?.length && !filesRes.data.files?.length) {
+        setErrorMessage("No documents found in this repository");
+      } else {
+        setErrorMessage(null);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setErrorMessage("Failed to load documents");
+    }
+  };
 
-// Handle empty repository
-if (noDocuments && noFiles) {
-  setErrorMessage("Repository empty.");
-} else {
-  setErrorMessage(null);
-}
-};
   const deleteDocument = (id) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       axios
-        .delete(`${backendUrl}/deleteDocument/${id}`) // <-- Fix: Pass id in URL
-        .then((res) => {
-          const data = res.data;
-          if (data.success) {
-            alert(data.message);
-            setDocuments((prevDocs) =>
-              prevDocs.filter((doc) => doc._id !== id)
-            );
-          } else {
-            alert(data.message);
-          }
+        .delete(`${backendUrl}/deleteDocument/${id}`)
+        .then(() => {
+          setDocuments((prev) => prev.filter((doc) => doc._id !== id));
         })
-        .catch((err) => {
-          console.error("Error deleting document:", err);
-          alert("Failed to delete document.");
-        });
+        .catch(console.error);
     }
   };
-  
-  //delete file
+
   const deleteFile = (id) => {
     if (window.confirm("Are you sure you want to delete this file?")) {
       axios
         .delete(`${fileBackendUrl}/deleteFile/${id}`)
-        .then((res) => {
-          if (res.data.success) {
-            setFiles(files.filter((file) => file._id !== id)); // Remove from state
-          }
+        .then(() => {
+          setFiles((prev) => prev.filter((file) => file._id !== id));
         })
-        .catch((err) => {
-          console.error("Error deleting file:", err);
-        });
+        .catch(console.error);
     }
   };
-  
 
   const handleViewClick = (file) => {
-    if (!file?._id) {
-      alert("Invalid file selected.");
-      return;
+    if (file?._id) {
+      window.open(`http://localhost:5001/api/file/view/${file._id}`, "_blank");
     }
-    window.open(`http://localhost:5001/api/file/view/${file._id}`, "_blank");
   };
-  
-  // Handle file selection
 
-  // Handle file upload
   const uploadFile = async () => {
-    if (!selectedFile) {
-      alert("Please select a file first.");
-      return;
-    }
+    if (!selectedFile) return alert("Please select a file");
 
     const allowedExtensions = ["doc", "docx", "pdf"];
     const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
 
     if (!allowedExtensions.includes(fileExtension)) {
-      alert("Only .doc, .docx, and .pdf files are allowed.");
-      return;
+      return alert("Only .doc, .docx, and .pdf files are allowed");
     }
 
     const formData = new FormData();
@@ -185,141 +160,236 @@ if (noDocuments && noFiles) {
     formData.append("userId", userId);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5001/api/file/upload",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      await axios.post("http://localhost:5001/api/file/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      alert(res.data.message);
-
-      const fileRes = await axios.get(
+      const res = await axios.get(
         `${fileBackendUrl}/getFilesByDepartmentAndUser/${department}/${userId}`
       );
-      setFiles(fileRes.data.files);
-
+      setFiles(res.data.files);
       setShowUploadModal(false);
       setSelectedFile(null);
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to upload file.");
+      console.error("Upload error:", error);
+      alert("Failed to upload file");
     }
   };
 
   return (
-    <div className="document-repository-page">
+    <div className="document-repository-container">
       <Sidebar />
-      <div className="document-repository-content">
-        <h2 className="document-repository-title">Document Repository</h2>
 
-        {/* Display error message if any */}
-        {errorMessage && <p className="error-message">{errorMessage}</p>}
-
-        {/* Container to align buttons horizontally */}
-        <div className="top-action-section">
-          {/* Button to create a new document */}
-          <Link
-            to={`/department/${department}/documents/create`}
-            className="create-new-btn"
-          >
-            Create
-          </Link>
-
-          {/* Upload File Button */}
-          <button onClick={() => setShowUploadModal(true)}>Upload</button>
+      <main className="document-repository-main">
+        <div className="main-title-row">
+          <button className="back-button" onClick={() => navigate(-1)}>
+            <FiArrowLeft />
+          </button>
+          <h1>Document Repository</h1>
         </div>
 
-        <h3>Created Files</h3>
-        <div className="document-cards">
-          {documents.map((doc) => (
-            <div key={doc._id} className="document-card">
-              <div className="document-info">
-                <h4>{doc.title}</h4>
-                <p>Last updated: {new Date(doc.updatedAt).toDateString()}</p>
-              </div>
+        <header className="repository-header">
+          <div className="header-title-group">
+            <span className="department-badge">
+              Department: {departmentName}
+            </span>
+          </div>
 
-              <div className="button-container">
-                {/* <button
-                    className="view-btn"
-                    onClick={() => viewDocument(doc._id)}
-                  >
-                    View
-                  </button> */}
-                <Link
-                  to={`/department/${department}/documents/view/${doc._id}`}
-                  className="view-btn"
-                >
-                  View
-                </Link>
+          <div className="action-buttons">
+            <Link
+              to={`/department/${department}/documents/create`}
+              className="btn btn-primary"
+            >
+              <FiPlus /> Create New
+            </Link>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowUploadModal(true)}
+            >
+              <FiUpload /> Upload File
+            </button>
+          </div>
 
-                <Link
-                  to={`/department/${department}/documents/edit/${doc._id}`}
-                  className="edit-btn"
-                >
-                  Edit
-                </Link>
-              </div>
+          {errorMessage && <div className="error-message">{errorMessage}</div>}
+        </header>
 
-              <button
-                className="delete-btn"
-                onClick={() => deleteDocument(doc._id)}
-              >
-                Delete
-              </button>
+        <section className="documents-section">
+          <h2>Created Documents</h2>
+          {documents.length > 0 ? (
+            <div className="documents-grid">
+              {documents.map((doc) => (
+                <DocumentCard
+                  key={doc._id}
+                  type="document"
+                  title={doc.title}
+                  createdAt={doc.createdAt}
+                  updatedAt={doc.updatedAt}
+                  onView={() =>
+                    navigate(
+                      `/department/${department}/documents/view/${doc._id}`
+                    )
+                  }
+                  onEdit={() =>
+                    navigate(
+                      `/department/${department}/documents/edit/${doc._id}`
+                    )
+                  }
+                  onDelete={() => deleteDocument(doc._id)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="empty-state">No documents created yet</div>
+          )}
+        </section>
 
-        {/* Files Section */}
-        <h3>Uploaded Files</h3>
-        <div className="document-cards">
-          {files.map((file) => (
-            <div key={file._id} className="document-card">
-              <div className="document-info">
-                <h4>{file.filename}</h4>
-                {/* <p>Type: {file.fileType}</p> */}
-                <p>Uploaded: {new Date(file.uploadedAt).toDateString()}</p>
-              </div>
-              <div className="button-container">
-                <button
-                  className="view-btn"
-                  onClick={() => handleViewClick(file)}
-                >
-                  View
-                </button>
-              </div>
-              <button
-                className="delete-btn"
-                onClick={() => deleteFile(file._id)}
-              >
-                Delete
-              </button>
+        <section className="files-section">
+          <h2>Uploaded Files</h2>
+          {files.length > 0 ? (
+            <div className="documents-grid">
+              {files.map((file) => (
+                <DocumentCard
+                  key={file._id}
+                  type="file"
+                  title={file.filename}
+                  createdAt={file.uploadedAt}
+                  onView={() => handleViewClick(file)}
+                  onDelete={() => deleteFile(file._id)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          ) : (
+            <div className="empty-state">No files uploaded yet</div>
+          )}
+        </section>
+      </main>
 
       {showUploadModal && (
-        <div className="modal">
-          <h2>Upload File</h2>
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={(e) => setSelectedFile(e.target.files[0])}
-          />
-
-          {/* <button onClick={() => alert(`File ${selectedFile?.name} selected!`)}>Upload</button> */}
-          <button className="upload-btn" onClick={uploadFile}>
-            Upload File
-          </button>
-
-          <button onClick={() => setShowUploadModal(false)}>Close</button>
+        <div className="modal-overlay1">
+          <div className="modal-content">
+            <h3>Upload New File</h3>
+            <div className="file-upload-area">
+              <input
+                type="file"
+                id="file-upload"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+              />
+              <label htmlFor="file-upload" className="file-upload-label">
+                {selectedFile ? selectedFile.name : "Choose a file"}
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowUploadModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={uploadFile}
+                disabled={!selectedFile}
+              >
+                Upload
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
+const DocumentCard = ({
+  type,
+  title,
+  createdAt,
+  updatedAt,
+  onView,
+  onEdit,
+  onDelete,
+}) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <article className="document-card" onClick={onView}>
+      <div className="card-icon">
+        <FiFile size={36} />
+        <span className="file-type-badge">{type}</span>
+      </div>
+
+      <div className="card-content">
+        <h3 className="card-title">{title}</h3>
+
+        <div className="card-meta">
+          <div className="meta-item">
+            <span className="meta-label">Created:</span>
+            <span>{new Date(createdAt).toLocaleDateString()}</span>
+          </div>
+          {updatedAt && (
+            <div className="meta-item">
+              <span className="meta-label">Updated:</span>
+              <span>{new Date(updatedAt).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card-actions" ref={dropdownRef}>
+        <div className="dropdown">
+          <button
+            className="dropdown-toggle"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }}
+          >
+            <FiMoreVertical />
+          </button>
+          {showDropdown && (
+            <div className="dropdown-menu">
+              {onEdit && (
+                <button
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                    setShowDropdown(false);
+                  }}
+                >
+                  <FiEdit2 /> Edit
+                </button>
+              )}
+              <button
+                className="dropdown-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                  setShowDropdown(false);
+                }}
+              >
+                <FiTrash2 /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+};
 export default DocumentRepositoryPage;

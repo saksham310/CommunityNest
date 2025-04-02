@@ -1,175 +1,387 @@
-/* General Styles */
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
+.department-page {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.departments-container {
+  flex: 1;
+  padding: 40px 60px 40px 300px;
+  max-width: 1400px;
+  margin: 0 auto;
+  margin-top: 40px;
+  
+ 
+}
+
+/* Header Wrapper */
+.header-wrapper {
+  margin-bottom: 30px;
+  margin-top: 40px;
+  width: 100%;
+}
+
+/* Titles Section */
+.header-titles {
+  margin-bottom: 15px;
+  text-align: left;
+  width: 100%;
+}
+
+.header-titles h1 {
+  font-size: 28px;
+  color: #2c3e50;
+  font-weight: 700;
   margin: 0;
-  padding: 0;
+  text-align: left;
 }
 
-h1 {
-  text-align: center;
-  margin-top: 100px;
+.header-titles .subtitle {
+  color: #7f8c8d;
+  font-size: 14px;
+  margin: 10px 10 0 0;
+  font-weight: 400;
+  text-align: left;
 }
 
-button {
-  background-color: #007bff;
+/* Actions Row */
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 15px;
+}
+
+/* Department Count Badge */
+.department-count-badge {
+  background: #e8f4fd;
+  color: #4361ee;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-number {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.count-text {
+  font-size: 14px;
+}
+
+/* Create Department Button */
+.create-department-btn {
+  background: #4361ee;
   color: white;
   border: none;
-  padding: 10px 15px;
-  margin: 10px;
+  padding: 9px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  border-radius: 5px;
-  transition: 0.3s;
+  transition: all 0.2s ease;
 }
 
-button:hover {
-  background-color: #0056b3;
+.create-department-btn:hover {
+  background: #3a56d4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
 }
 
-.header-container{
-  padding-left: 300px;
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .create-department-btn {
+    width: 100%;
+  }
 }
-
-/* Department Container */
 .department-container {
-  justify-content: center;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Three columns */
-  gap: 20px;
-  padding: 20px;
-  max-width: 1200px;
-  margin: auto;
-  padding-left: 300px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
 }
 
-/* Department Card */
 .department-card {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: center; /* Centers the department name */
-  align-items: center;
-  position: relative;
-  height: 150px;
-}
-
-.department-name {
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-  text-align: center; /* Ensures the text is centered */
-  width: 100%; /* Ensures the text takes up the full width of the card */
-}
-.department-name:hover {
-  color: #007bff; /* Change to your preferred color */
-}
-/* Dots Icon */
-.dots-icon {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 26px;
-  height: 26px;
-  cursor: pointer;
-}
-
-/* Dropdown Menu */
-.dropdown-menu {
-  position: absolute;
-  top: 35px;
-  right: 10px;
   background: white;
-  border-radius: 5px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 1px;
+  border-radius: 10px;
+  padding: 25px;
+  position: relative;
+  border: none;
+ 
+ 
+}
+
+.department-card:hover {
+  transform: none;
+ 
+}
+
+.department-content {
   display: flex;
   flex-direction: column;
-  width: auto; /* Adjust dropdown width to the content */
+  height: 100%;
+}
+
+.department-card h2 {
+  font-size: 18px;
+  color: #333;
+  margin: 0 0 5px 0;
+  font-weight: 600;
+}
+
+.department-subtitle {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 20px 0;
+}
+.title-row h1{
+  text-align: left;
+}
+
+.view-documents-btn {
+  background: #e8f4fd;
+  color: #4361ee;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.view-documents-btn:hover {
+  background: rgb(224, 242, 250);
+  color: #4361ee;
+}
+
+.dots-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.dots-icon:hover {
+  opacity: 1;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 45px;
+  right: 15px;
+  background: white;
+  border-radius: 10px;
+  
+  padding: 8px 0;
   min-width: 120px;
+  z-index: 10;
+  
 }
 
 .dropdown-menu button {
   background: none;
   border: none;
-  color: black;
-  padding: 8px 10px;
+  color: #555;
+  padding: 8px 16px;
   text-align: left;
+  width: 100%;
+  font-size: 14px;
   cursor: pointer;
-  height: 30px;
-  width: auto;
 }
 
 .dropdown-menu button:hover {
-  background-color: #f0f0f0;
+  background: #f8f9fa;
+  color: #4361ee;
+}
+
+.no-departments {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  padding: 40px 0;
 }
 
 /* Modal Styles */
-.modal {
+.modal-overlay1 {
   position: fixed;
-  top: 30%;
-  left: 40%;
-  transform: translate(-50%, -50%); /* Centers the modal */
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
-  width: 400px; /* Increase modal width */
-  text-align: center;
-  flex-direction: column;
-  
 }
 
-/* Modal Input */
-.modal input {
-  width: 100%; /* Adjust width of input */
-  margin: 10px 10;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
+.modal-content1 {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease-out;
 }
 
+.modal-overlay2 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
 
-/* Modal Buttons */
+.modal-content2 {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-content h2 {
+  margin: 0 0 25px 0;
+  font-size: 20px;
+  color: #333;
+  font-weight: 600;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 25px;
+  box-sizing: border-box;
+}
+
+.modal-content input:focus {
+  border-color: #4361ee;
+  outline: none;
+}
+
 .modal-buttons {
   display: flex;
-  justify-content: space-between; /* Align buttons horizontally */
-  gap: 10px; /* Optional gap between buttons */
-  width: 28%;
-  margin-top: 20px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
-.modal button {
-  width: 28%; /* Buttons take up 48% of the modal width */
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
+.modal-buttons button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 16px;
+  transition: background 0.2s;
 }
 
-.modal button:hover {
-  background-color: #d4d4d4;
-}
-
-
-/* Create Department Button */
-.create-department-btn {
-  position: absolute; /* Position it absolutely in the container */
-  top: 20px; /* Align at the top */
-  right: 20px; /* Align at the right */
-  background-color: #007bff;
+.modal-buttons button:first-child {
+  background: #4361ee;
   color: white;
   border: none;
-  padding: 10px 15px;
+}
+
+.modal-buttons button:first-child:hover {
+  background: #3a56d4;
+}
+
+.modal-buttons button:last-child {
+  background: #f8f9fa;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+.modal-buttons button:last-child:hover {
+  background: #e9ecef;
+}
+
+/* Ellipsis Icon (three dots) */
+.ellipsis-icon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
   cursor: pointer;
-  border-radius: 5px;
-  transition: 0.3s;
+  font-size: 20px;
+  line-height: 1;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s;
+  rotate: 90deg;
+}
+
+.ellipsis-icon:hover {
+  color: #4361ee;
+}
+
+/* If you want a more modern ellipsis icon */
+.ellipsis-icon.modern {
+  font-size: 24px;
+  letter-spacing: -2px;
+}
+/* Existing badge styles with some adjustments
+.department-count-badge {
+  background: #e8f4fd;
+  color: #4361ee;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: fit-content;
+}
+
+.count-number {
+  font-weight: 600;
   font-size: 16px;
 }
 
-.create-department-btn:hover {
-  background-color: #0056b3;
-}
+.count-text {
+  font-size: 14px;
+} */
