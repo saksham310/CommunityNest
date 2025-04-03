@@ -1,253 +1,506 @@
-/* General layout for the meeting container */
+/* ================ BASE STYLES ================ */
 .meeting-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    flex-direction: column;
-    padding: 20px;
-    margin-left: 230px;
-    margin-top: 70px;
-    font-family: shatoshi, sans-serif;
+  display: flex;
+  min-height: 100vh;
+  /* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
+  background-color: #f5f7fa;
+  margin-top: 80px;
+  margin-left: 40px;
+  position: relative; /* Add this to establish a stacking context */
+}
+
+.meeting-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 250px;
+  position: relative; /* Add this */
+  z-index: 1; /* Regular content should have lower z-index */
+}
+
+/* ================ HEADER & NAVIGATION ================ */
+.meeting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.meeting-header h1 {
+  font-size: 23px;
+  font-weight: 550;
+  color: #2d3748;
+  margin: 0;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.user-email {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+/* ================ BUTTON STYLES ================ */
+.primary-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.primary-btn:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  background-color: white;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background-color: #f0f7ff;
+}
+
+.google-signin-btn {
+  background-color: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.google-signin-btn:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.google-icon {
+  font-size: 1.2rem;
+}
+
+/* ================ MEETING CARDS ================ */
+.meetings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.meeting-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 1px solid #e5e7eb;
+}
+
+.meeting-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.card-header h3 {
+  margin: 0;
+  color: #45648f;
+  font-size: 18px;
+  font-weight: 400;
+  text-align: left;
+}
+
+.card-menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.5rem;
+  border-radius: 30px;
+  transition: all 0.2s ease;
+}
+
+.card-menu-btn:hover {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.card-menu {
+  position: absolute;
+  top: 3.5rem;
+  right: 1rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  width: 160px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.card-menu button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.card-menu button:hover {
+  background-color: #f8fafc;
+  color: #1f2937;
+}
+
+.card-body {
+  flex: 1;
+}
+
+.description {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  font-size: 0.9rem;
+  text-align: left;
+ 
+}
+.agenda{
+  color: #4b5563;
+  margin-bottom: -5px;
+  line-height: 1.5;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.time-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.time-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.time-icon {
+  color: #6b7280;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.time-label {
+  font-weight: 500;
+  color: #374151;
+  margin-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.attendees-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.attendees-icon {
+  color: #6b7280;
+}
+
+.join-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.75rem;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.join-btn:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* ================ EMPTY STATE ================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #9ca3af;
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+/* ================ AUTH PROMPT ================ */
+.auth-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid #e5e7eb;
+}
+
+.auth-prompt p {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+
+
+
+
+/* =============== MODAL OVERLAY =============== */
+.schedule-modal-overlay,
+.edit-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* =============== MODAL CONTAINER =============== */
+.schedule-modal,
+.edit-modal {
+  background: white;
+  border-radius: 12px;
+  width: 45%;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.3s ease-out;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* =============== MODAL HEADER =============== */
+.schedule-modal-header,
+.edit-modal-header {
+  padding: 1.5rem 1.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+}
+
+.schedule-modal-header h2,
+.edit-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.schedule-close-btn,
+.edit-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.schedule-close-btn:hover,
+.edit-close-btn:hover {
+  color: #1f2937;
+}
+
+/* =============== MODAL FORM =============== */
+.schedule-modal form,
+.edit-modal form {
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  background-color: #f9fafb;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: white;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+  max-height: 200px;
+  width: 94%;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+/* =============== TIME INPUTS =============== */
+.time-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Equal width columns */
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Ensure date/time inputs don't overflow */
+.time-inputs input[type="datetime-local"] {
+  width: 100%;
+  min-width: 0; /* Prevent grid blowout */
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 500px) {
+  .time-inputs {
+    grid-template-columns: 1fr; /* Stack vertically on small screens */
+  }
+}
+
+/* =============== MODAL ACTIONS =============== */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.5rem;
+}
+
+/* =============== RESPONSIVE ADJUSTMENTS =============== */
+@media (max-width: 640px) {
+  .schedule-modal,
+  .edit-modal {
+    width: 95%;
   }
   
-  /* Meeting content styles */
-  .meeting-content {
-    display: flex;
-    flex: 1;
-    padding: 20px;
-    gap: 20px;
-    flex-direction: column;
-    align-items: center;
+  .time-inputs {
+    grid-template-columns: 1fr;
   }
   
-  /* Upcoming meetings section */
-  .upcoming-meetings {
-    width: 100%;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 10px;
-    overflow-y: auto;
+  .schedule-modal form,
+  .edit-modal form {
+    padding: 1.25rem;
+    gap: 1rem;
   }
   
-  .upcoming-meetings h2 {
-    margin: 0 0 15px;
-    text-align: center;
+  .schedule-modal-header,
+  .edit-modal-header {
+    padding: 1.25rem 1.25rem 0.75rem;
   }
-  
-  /* Meeting card styles */
-  .meeting-card {
-    background: #fff;
-    width: 700px;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    text-align: left;
-  }
-  
-  .meeting-card p {
-    margin: 4px;
-    flex: 1;
-    text-align:left;
-  }
-  
-  .meeting-card p strong {
-    font-size: 1.1em;
-    color: #333;
-  }
-  
-  .meeting-card a {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
-    padding: 8px 12px;
-    background-color: #007bff;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    text-align: center;
-  }
-  
-  .meeting-card a:hover {
-    background-color: #0056b3;
-  }
-  
-  /* Three dots for options */
-  .three-dots {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    padding: 8px 12px;
-    cursor: pointer;
-  }
-  
-  /* Options menu for meeting */
-  .options-menu {
-    position: absolute;
-    width: 130px;
-    top: 30px;
-    right: 10px;
-    background-color: white;
-    border-radius: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 8px 0;
-    z-index: 10;
-  }
-  
-  .options-menu button {
-    background: none;
-    border: none;
-    padding: 8px 15px;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    color: #333;
-    border-radius: 8px;
-    margin: 2px 5px;
-  }
-  
-  .options-menu button:hover {
-    color: #797979;
-  }
-  
-  /* Schedule meeting form */
-  .schedule-meeting-form {
-    padding: 20px;
-    background-color: none;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    font-family: shatoshi, sans-serif;
-  }
-  
-  .schedule-meeting-form h2 {
-    margin-bottom: 15px;
-    text-align: center;
-  }
-  
-  .schedule-meeting-form form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .schedule-meeting-form input,
-  .schedule-meeting-form textarea {
-    width: 93%;
-    height: auto;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  .schedule-meeting-form button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .schedule-meeting-form button:hover {
-    background-color: #218838;
-  }
-  .modal {
-    top: 20%;
-    left: 35%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-    width: 300px;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .modal h2 {
-    text-align: center;
-    margin-bottom: 15px;
-  }
-  
-  .modal form {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .modal input,
-  .modal textarea {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 5px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-  }
-  
-  .modal textarea {
-    height: 40px;
-    resize: none;
-  }
-  
-  /* Button container */
-  .button-group {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-  }
-  
-  /* Button styles */
-  .button-group button {
-    width: 48%;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-  
-  .modal button[type="submit"] {
-    background-color: #007bff;
-    color: white;
-  }
-  
-  .modal button[type="submit"]:hover {
-    background-color: #0056b3;
-  }
-  
-  .close-modal-button {
-    background-color: #dc3545;
-    color: white;
-  }
-  
-  .close-modal-button:hover {
-    background-color: #a71d2a;
-  }
-  .user-info {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  
-  .user-info p {
-    margin: 0;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  
-  .schedule-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-  
-  .schedule-button:hover {
-    background-color: #45a049;
-  }
+}

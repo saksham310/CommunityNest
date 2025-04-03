@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import "./meeting.css";
+import {
+  FiCalendar,
+  FiClock,
+  FiUsers,
+  FiEdit2,
+  FiTrash2,
+  FiCopy,
+  FiVideo,
+  FiMoreVertical,
+} from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 
 const ScheduleMeetingForm = () => {
   const [eventData, setEventData] = useState({
@@ -20,14 +31,18 @@ const ScheduleMeetingForm = () => {
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
   const [memberEmails, setMemberEmails] = useState([]);
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/meeting/check-auth", {
-          method: "GET",
-          credentials: "include", // Ensure cookies are sent
-        });
+        const response = await fetch(
+          "http://localhost:5001/api/meeting/check-auth",
+          {
+            method: "GET",
+            credentials: "include", // Ensure cookies are sent
+          }
+        );
 
         if (response.ok) {
           setAuthenticated(true);
@@ -47,25 +62,30 @@ const ScheduleMeetingForm = () => {
 
   const fetchUserEmail = async () => {
     try {
-        const response = await fetch("http://localhost:5001/api/meeting/fetch-email", {
-            method: "GET",
-            credentials: "include", // Ensure cookies are sent
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text(); // Read the response as text
-            console.error("Error fetching user email:", errorText);
-            alert(`Error fetching user email: ${errorText}`);
-            return;
+      const response = await fetch(
+        "http://localhost:5001/api/meeting/fetch-email",
+        {
+          method: "GET",
+          credentials: "include", // Ensure cookies are sent
         }
+      );
 
-        const result = await response.json();
-        setEmail(result.email);
+      if (!response.ok) {
+        const errorText = await response.text(); // Read the response as text
+        console.error("Error fetching user email:", errorText);
+        alert(`Error fetching user email: ${errorText}`);
+        return;
+      }
+
+      const result = await response.json();
+      setEmail(result.email);
     } catch (error) {
-        console.error("Error fetching user email:", error);
-        alert("Something went wrong while fetching your email. Please try again.");
+      console.error("Error fetching user email:", error);
+      alert(
+        "Something went wrong while fetching your email. Please try again."
+      );
     }
-};
+  };
 
   const fetchMemberEmails = async () => {
     try {
@@ -143,7 +163,10 @@ const ScheduleMeetingForm = () => {
       .split(",")
       .map((email) => email.trim());
 
-    console.log("Scheduling meeting with data:", { ...eventData, attendees: attendeesList });
+    console.log("Scheduling meeting with data:", {
+      ...eventData,
+      attendees: attendeesList,
+    });
 
     try {
       const response = await fetch(
@@ -210,9 +233,7 @@ const ScheduleMeetingForm = () => {
     // Convert the attendees string back into an array
     const updatedEvent = {
       ...currentEvent,
-      attendees: currentEvent.attendees
-        .split(",")
-        .map((email) => email.trim()), // Convert to array and trim whitespace
+      attendees: currentEvent.attendees.split(",").map((email) => email.trim()), // Convert to array and trim whitespace
     };
 
     console.log("Editing event with data:", updatedEvent);
@@ -280,99 +301,250 @@ const ScheduleMeetingForm = () => {
     <div className="meeting-container">
       <Sidebar />
       <div className="meeting-content">
-        <div className="upcoming-meetings">
-          <h2>Meetings</h2>
-
-          {!authenticated && (
-            <p>Sign in with Google to view scheduled meetings</p>
-          )}
-
+        <div className="meeting-header">
+          <h1>Schedule & Meet</h1>
           {!authenticated ? (
-            <button onClick={handleGoogleAuth}>Sign in with Google</button>
+            <button className="google-signin-btn" onClick={handleGoogleAuth}>
+              <FcGoogle className="google-icon" /> Sign in with Google
+            </button>
           ) : (
-            <>
-              <div className="user-info">
-                <p>Signed Up as: {email}</p>
+            <div className="user-actions">
+              <span className="user-email">Signed in as: {email}</span>
+              <button
+                className="primary-btn"
+                onClick={async () => {
+                  setScheduleModalVisible(true);
+                  await fetchMemberEmails();
+                }}
+              >
+                <FiCalendar /> Schedule Meeting
+              </button>
+            </div>
+          )}
+        </div>
+
+        {!authenticated && (
+          <div className="auth-prompt">
+            <p>Please sign in with Google to view and schedule meetings</p>
+          </div>
+        )}
+
+        {authenticated && (
+          <div className="meetings-section">
+            {events.length > 0 ? (
+              <div className="meetings-grid">
+                {events.map((event) => (
+                  <div key={event.id} className="meeting-card">
+                    <div className="card-header">
+                      <h3>{event.summary}</h3>
+                      <button
+                        className="card-menu-btn"
+                        onClick={() => handleMenuToggle(event.id)}
+                      >
+                        <FiMoreVertical />
+                      </button>
+                      {menuVisible === event.id && (
+                        <div className="card-menu">
+                          <button onClick={() => handleEdit(event.id)}>
+                            <FiEdit2 /> Edit
+                          </button>
+                          <button onClick={() => handleDelete(event.id)}>
+                            <FiTrash2 /> Delete
+                          </button>
+                          {event.hangoutLink && (
+                            <button
+                              onClick={() => handleCopyLink(event.hangoutLink)}
+                            >
+                              <FiCopy /> Copy Link
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="card-body">
+                      <p className="agenda"> Agenda: </p>
+                      <p className="description"> {event.description}</p>
+
+                      <div className="time-info">
+                        <div className="time-block">
+                          <FiClock className="time-icon" />
+                          <div>
+                            <span className="time-label">Starts:</span>
+                            <span>
+                              {new Date(event.start.dateTime).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="time-block">
+                          <FiClock className="time-icon" />
+                          <div>
+                            <span className="time-label">Ends:</span>
+                            <span>
+                              {new Date(event.end.dateTime).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {event.attendees?.length > 0 && (
+                        <div className="attendees-info">
+                          <FiUsers className="attendees-icon" />
+                          <span>
+                            {event.attendees.length} attendee
+                            {event.attendees.length !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {event.hangoutLink && (
+                      <a
+                        href={event.hangoutLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="join-btn"
+                      >
+                        <FiVideo /> Join Meeting
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <FiCalendar className="empty-icon" />
+                <p>No upcoming meetings scheduled</p>
                 <button
+                  className="primary-btn"
                   onClick={async () => {
                     setScheduleModalVisible(true);
                     await fetchMemberEmails();
                   }}
-                  className="schedule-button"
                 >
-                  Schedule Meeting
+                  Schedule Your First Meeting
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Schedule Meeting Modal */}
+        {scheduleModalVisible && (
+          <div className="schedule-modal-overlay">
+            <div className="schedule-modal">
+              <div className="schedule-modal-header">
+                <h2>Schedule New Meeting</h2>
+                <button
+                  className="schedule-close-btn"
+                  onClick={() => setScheduleModalVisible(false)}
+                >
+                  &times;
                 </button>
               </div>
 
-              {scheduleModalVisible && (
-                <div className="modal">
-                  <div className="modal-content">
-                    <h2>Schedule a Meeting</h2>
-                    <form onSubmit={handleSubmit}>
-                      <input
-                        type="text"
-                        name="summary"
-                        placeholder="Event Title"
-                        value={eventData.summary}
-                        onChange={handleChange}
-                        required
-                      />
-                      <textarea
-                        name="description"
-                        placeholder="Event Description"
-                        value={eventData.description}
-                        onChange={handleChange}
-                        required
-                      />
-                      <input
-                        type="datetime-local"
-                        name="start"
-                        value={eventData.start}
-                        onChange={handleChange}
-                        required
-                      />
-                      <input
-                        type="datetime-local"
-                        name="end"
-                        value={eventData.end}
-                        onChange={handleChange}
-                        required
-                      />
-                      <input
-                        type="text"
-                        name="attendees"
-                        value={eventData.attendees}
-                        placeholder="Attendees (comma-separated emails)"
-                        onChange={(e) =>
-                          setEventData((prev) => ({
-                            ...prev,
-                            attendees: e.target.value,
-                          }))
-                        }
-                        required
-                      />
-                      <div className="button-group">
-                        <button type="submit">Schedule</button>
-                        <button
-                          className="close-modal-button"
-                          onClick={() => setScheduleModalVisible(false)}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label>Meeting Title</label>
+                  <input
+                    type="text"
+                    name="summary"
+                    placeholder="Team sync, 1:1, etc."
+                    value={eventData.summary}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea
+                    name="description"
+                    placeholder="Meeting agenda or details"
+                    value={eventData.description}
+                    onChange={handleChange}
+                    required
+                    rows="3"
+                  />
+                </div>
+
+                <div className="time-inputs">
+                  <div className="form-group">
+                    <label>Start Time</label>
+                    <input
+                      type="datetime-local"
+                      name="start"
+                      value={eventData.start}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>End Time</label>
+                    <input
+                      type="datetime-local"
+                      name="end"
+                      value={eventData.end}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
                 </div>
-              )}
-            </>
-          )}
 
-          {editModalVisible && (
-            <div className="modal">
-              <div className="modal-content">
-                <h2>Edit Event</h2>
-                <form onSubmit={handleEditSubmit}>
+                <div className="form-group">
+                  <label>Attendees</label>
+                  <input
+                    type="text"
+                    name="attendees"
+                    value={eventData.attendees}
+                    placeholder="email1@example.com, email2@example.com"
+                    onChange={(e) =>
+                      setEventData((prev) => ({
+                        ...prev,
+                        attendees: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                  <small className="hint">Separate emails with commas</small>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setScheduleModalVisible(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="primary-btn">
+                    {loading ? "Scheduling..." : "Schedule Meeting"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Meeting Modal */}
+        {editModalVisible && (
+          <div className="edit-modal-overlay">
+            <div className="edit-modal">
+              <div className="edit-modal-header">
+                <h2>Edit Meeting</h2>
+                <button
+                  className="edit-close-btn"
+                  onClick={() => setEditModalVisible(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit}>
+                <div className="form-group">
+                  <label>Meeting Title</label>
                   <input
                     type="text"
                     name="summary"
@@ -381,27 +553,46 @@ const ScheduleMeetingForm = () => {
                     onChange={handleEditChange}
                     required
                   />
+                </div>
+
+                <div className="form-group">
+                  <label>Description</label>
                   <textarea
                     name="description"
                     placeholder="Event Description"
                     value={currentEvent?.description || ""}
                     onChange={handleEditChange}
                     required
+                    rows="3"
                   />
-                  <input
-                    type="datetime-local"
-                    name="start"
-                    value={currentEvent?.start || ""}
-                    onChange={handleEditChange}
-                    required
-                  />
-                  <input
-                    type="datetime-local"
-                    name="end"
-                    value={currentEvent?.end || ""}
-                    onChange={handleEditChange}
-                    required
-                  />
+                </div>
+
+                <div className="time-inputs">
+                  <div className="form-group">
+                    <label>Start Time</label>
+                    <input
+                      type="datetime-local"
+                      name="start"
+                      value={currentEvent?.start || ""}
+                      onChange={handleEditChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>End Time</label>
+                    <input
+                      type="datetime-local"
+                      name="end"
+                      value={currentEvent?.end || ""}
+                      onChange={handleEditChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Attendees</label>
                   <input
                     type="text"
                     name="attendees"
@@ -410,77 +601,25 @@ const ScheduleMeetingForm = () => {
                     onChange={handleEditChange}
                     required
                   />
-                  <div className="button-group">
-                    <button type="submit">Save Changes</button>
-                    <button
-                      className="close-modal-button"
-                      onClick={() => setEditModalVisible(false)}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
+                  <small className="hint">Separate emails with commas</small>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setEditModalVisible(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="primary-btn">
+                    Save Changes
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
-
-          <ul>
-            {events.length > 0 ? (
-              events.map((event) => (
-                <li key={event.id} className="meeting-card">
-                  <div className="meeting-card-header">
-                    <p>
-                      <strong>Title:</strong> {event.summary}
-                    </p>
-                  </div>
-                  <p>
-                    <strong>Description:</strong> {event.description}
-                  </p>
-                  <p>
-                    <strong>Start:</strong>{" "}
-                    {new Date(event.start.dateTime).toLocaleString()}
-                  </p>
-                  <p>
-                    <strong>End:</strong>{" "}
-                    {new Date(event.end.dateTime).toLocaleString()}
-                  </p>
-
-                  <div
-                    className="three-dots"
-                    onClick={() => handleMenuToggle(event.id)}
-                  >
-                    &#x22EE;
-                  </div>
-                  {menuVisible === event.id && (
-                    <div className="options-menu">
-                      <button onClick={() => handleEdit(event.id)}>Edit</button>
-                      <button onClick={() => handleDelete(event.id)}>
-                        Delete
-                      </button>
-                      {event.hangoutLink && (
-                        <button
-                          onClick={() => handleCopyLink(event.hangoutLink)}
-                        >
-                          Copy Meet Link
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  <a
-                    href={event.hangoutLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Join Meeting
-                  </a>
-                </li>
-              ))
-            ) : (
-              <p>No upcoming meetings found.</p>
-            )}
-          </ul>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

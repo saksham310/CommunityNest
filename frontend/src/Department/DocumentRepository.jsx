@@ -59,56 +59,64 @@ const DocumentRepositoryPage = () => {
     }
   }, [department, userId, userRole]);
 
-  useEffect(() => {
-    // First check if we got the name from navigation state
-    if (location.state?.departmentName) {
-      setDepartmentName(location.state.departmentName);
-      return;
+  const fetchDepartmentName = async (departmentId) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5001/api/department/getDepartment/${departmentId}`
+      );
+      return response.data.name;
+    } catch (error) {
+      console.error("Error fetching department name:", error);
+      return departmentId; // Fallback to ID if fetch fails
     }
-
-    // Fallback: Fetch from API if not in state
-    const fetchDepartmentName = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:5001/api/department/getDepartment/${department}`
-        );
-        setDepartmentName(response.data.name);
-      } catch (error) {
-        console.error("Error fetching department name:", error);
-        setDepartmentName(department); // Fallback to ID if all else fails
+  };
+  
+  // Update your useEffect for department name
+  useEffect(() => {
+    const loadDepartmentName = async () => {
+      // First try to get from navigation state
+      if (location.state?.departmentName) {
+        setDepartmentName(location.state.departmentName);
+        return;
       }
+      
+      // If not in state, fetch from API
+      const name = await fetchDepartmentName(department);
+      setDepartmentName(name);
     };
-
+  
     if (department) {
-      fetchDepartmentName();
+      loadDepartmentName();
     }
   }, [department, location.state]);
 
-  const fetchDocumentsAndFiles = async (dept, fetchUserId) => {
+  const fetchDocumentsAndFiles = async (deptId, fetchUserId) => {
     try {
       const [docsRes, filesRes] = await Promise.all([
-        axios.get(
-          `${backendUrl}/getDocumentsByDepartmentAndUser/${dept}/${fetchUserId}`
-        ),
-        axios.get(
-          `${fileBackendUrl}/getFilesByDepartmentAndUser/${dept}/${fetchUserId}`
-        ),
+        axios.get(`${backendUrl}/getDocumentsByDepartmentAndUser/${deptId}/${fetchUserId}`),
+        axios.get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${deptId}/${fetchUserId}`)
       ]);
-
+  
+      // Set documents and files
       setDocuments(docsRes.data.documents || []);
-      setFiles(
-        (filesRes.data.files || []).map((file) => ({
-          ...file,
-          filePath: `http://localhost:5001/uploads/${file.filePath}`,
-        }))
-      );
-
-      if (!docsRes.data.documents?.length && !filesRes.data.files?.length) {
-        setErrorMessage("No documents found in this repository");
+      setFiles((filesRes.data.files || []).map(file => ({
+        ...file,
+        filePath: `http://localhost:5001/uploads/${file.filePath}`,
+      })));
+  
+      // Set department name from API response if available
+      if (docsRes.data.departmentName) {
+        setDepartmentName(docsRes.data.departmentName);
       } else {
-        setErrorMessage(null);
+        // Fallback: fetch department name directly
+        const nameResponse = await axios.get(
+          `http://localhost:5001/api/department/getDepartment/${deptId}`
+        );
+        setDepartmentName(nameResponse.data.name);
       }
-    } catch (err) {
+  
+      setErrorMessage(null);
+    }  catch (err) {
       console.error("Error fetching data:", err);
       setErrorMessage("Failed to load documents");
     }

@@ -12,10 +12,10 @@
   background-color: #f8fafc;
 }
 .document-repository-main h1 {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 23px;
+  font-weight: 550;
   color: #1e293b;
-  margin-bottom: 20px;
+  margin-bottom: 0px;
   text-align: left;
 }
 
@@ -36,12 +36,12 @@
   flex-wrap: wrap;
 } */
 
-.repository-header h1 {
-  font-size: 24px;
+/* .repository-header h1 {
+  font-size: 2px;
   font-weight: 700;
   color: #1e293b;
-  margin: 0; /* Remove default margin */
-}
+  margin: 0; 
+} */
 
 .department-badge {
   background-color: #e0e7ff;
@@ -390,6 +390,7 @@
   gap: 1rem;
   margin-bottom: 0.5rem;
 }
+
 
 /* Back button styles */
 .back-button {

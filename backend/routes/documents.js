@@ -97,12 +97,15 @@ router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req,
       .populate("department", "name")
       .exec();
 
-    if (documents.length === 0) {
-      return res.status(200).json({ success: true, message: "Repository empty", documents: [] });
-    }
+   // Extract department name from the first document (all docs in same department)
+   const departmentName = documents[0]?.department?.name || null;
 
-    res.status(200).json({ success: true, documents });
-  } catch (error) {
+   res.status(200).json({ 
+     success: true, 
+     documents,
+     departmentName // Include in response
+   });
+ } catch (error) {
     console.error("Error fetching documents:", error.message);
     res.status(500).json({
       success: false,

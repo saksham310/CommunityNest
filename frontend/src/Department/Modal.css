@@ -1,46 +1,107 @@
-.document-view {
-  margin: 40px auto;
-  padding: 20px;
-  max-width: 800px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  margin-left: 450px; /* Add space for sidebar */
-  margin-top: 110px;
+.document-view-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  margin-top: 70px;
 }
 
-.document-view h2 {
-  margin-bottom: 20px;
-  font-size: 24px;
-  text-align: center;
+.document-view-main {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 280px; /* Sidebar width */
+}
+
+.document-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  color: #4a5568;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #2d3748;
+}
+
+.document-header h1 {
+  font-size: 18px;
+  font-weight: 580;
+  color: #2d3748;
+  margin: 0;
+}
+
+.document-content-wrapper {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-bottom: 2rem;
 }
 
 .document-content {
-  margin-bottom: 20px;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.6;
+  color: #4a5568;
+}
+
+.document-content img {
+  max-width: 100%;
+  height: auto;
 }
 
 .document-actions {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
-.document-actions button {
-  padding: 10px 20px;
+.btn-download {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.document-actions button:first-child {
-  background-color: #007bff;
+.btn-download.doc {
+  background-color: #4299e1;
   color: white;
 }
 
-.document-actions button:last-child {
-  background-color: #28a745;
+.btn-download.pdf {
+  background-color: #48bb78;
   color: white;
+}
+
+.btn-download:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin-left: 250px;
+  font-size: 1.2rem;
+  color: #4a5568;
+}
+
+.error-container {
+  color: #e53e3e;
 }

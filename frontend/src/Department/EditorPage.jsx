@@ -18,7 +18,7 @@ const EditorPage = () => {
   const editor = useRef(null);
   const editorContentRef = useRef("");
   const [departmentName, setDepartmentName] = useState("");
-  
+
   useEffect(() => {
     if (id) {
       setLoading(true);
@@ -40,6 +40,24 @@ const EditorPage = () => {
         });
     }
   }, [id]);
+
+  useEffect(() => {
+    const fetchDepartmentName = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5001/api/department/getDepartment/${department}`
+        );
+        setDepartmentName(response.data.name);
+      } catch (error) {
+        console.error("Error fetching department name:", error);
+        setDepartmentName(department); // Fallback to ID if fetch fails
+      }
+    };
+
+    if (department) {
+      fetchDepartmentName();
+    }
+  }, [department]);
 
   const editorConfig = {
     readonly: false,
@@ -98,7 +116,7 @@ const EditorPage = () => {
             className="back-button"
             onClick={() =>
               navigate(`/department/${department}/documents`, {
-                state: { departmentName: departmentName }, // Pass the name explicitly
+                state: { departmentName: departmentName },
               })
             }
           >
