@@ -3,9 +3,17 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import "./EventDetails.css";
-import { FaPlus } from "react-icons/fa"; // Import the plus icon from react-icons
 import { useRef } from "react";
-import { FaFolder } from "react-icons/fa"; // Import folder icon
+import {
+  FaPlus,
+  FaFolder,
+  FaEllipsisV,
+  FaPaperclip,
+  FaEnvelope,
+  FaRegCopy,
+  FaTrashAlt,
+} from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -33,6 +41,7 @@ const EventDetails = () => {
   const [token, setToken] = useState(null);
   const [email, setEmail] = useState(null);
 
+  const [deletingRow, setDeletingRow] = useState(null);
   useEffect(() => {
     // Initialize editableEmails with the emails of attendees marked as "Present"
     const presentEmails = getPresentAttendees()
@@ -113,23 +122,80 @@ const EventDetails = () => {
     };
   }, []);
 
+  // const handleDeleteRow = async (frontendRowIndex) => {
+  //   if (!activeSheetUrl) {
+  //     alert("Please select a sheet first");
+  //     return;
+  //   }
+
+  //   // Convert frontend 0-based index to Google Sheets 1-based row number
+  //   // Add 2 because:
+  //   // - +1 for 1-based indexing
+  //   // - +1 more because header row is row 1 in Sheets
+  //   const sheetRowNumber = frontendRowIndex + 2;
+
+  //   if (!window.confirm(`Are you sure you want to delete row ${sheetRowNumber}?`)) {
+  //     return;
+  //   }
+
+  //   try {
+  //     setDeletingRow(frontendRowIndex);
+
+  //     const response = await axios.delete(`${baseUrl}/google-sheets/delete-row`, {
+  //       data: {
+  //         sheetUrl: activeSheetUrl,
+  //         rowNumber: sheetRowNumber // Using the converted 1-based row number
+  //       },
+  //       headers: {
+  //         'Content-Type': 'application/json'
+  //       },
+  //       withCredentials: true
+  //     });
+
+  //     if (!response.data?.success) {
+  //       throw new Error(response.data?.error || "Deletion failed");
+  //     }
+
+  //     // Update local state by removing the deleted row
+  //     setAttendees(prev => prev.filter((_, i) => i !== frontendRowIndex));
+
+  //   } catch (error) {
+  //     console.error("Delete error:", {
+  //       error: error.message,
+  //       response: error.response?.data
+  //     });
+
+  //     alert(`Deletion failed: ${error.response?.data?.error || error.message}`);
+
+  //     // Refresh data from server to sync state
+  //     if (activeSheetUrl) {
+  //       handleSheetClick(activeSheetUrl, activeSheetTitle);
+  //     }
+  //   } finally {
+  //     setDeletingRow(null);
+  //   }
+  // };
+
   const sendFeedbackEmail = async (emails, subject, message) => {
     try {
-      const response = await fetch("http://localhost:5001/api/events/send-feedback-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: emails, // Array of recipient emails
-          subject: subject, // Email subject
-          message: message, // Email message
-        }),
-        credentials: "include", // Include cookies in the request
-      });
-  
+      const response = await fetch(
+        "http://localhost:5001/api/events/send-feedback-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: emails, // Array of recipient emails
+            subject: subject, // Email subject
+            message: message, // Email message
+          }),
+          credentials: "include", // Include cookies in the request
+        }
+      );
+
       const data = await response.json();
-  
+
       if (response.ok) {
         alert("Feedback emails sent successfully!");
       } else {
@@ -376,24 +442,39 @@ const EventDetails = () => {
     const [sheetUrl, setSheetUrl] = useState("");
 
     const handleUpload = () => {
-      onUpload(sheetUrl); // Pass the sheet URL to the parent component
-      onClose(); // Close the popup
+      onUpload(sheetUrl);
+      onClose();
     };
 
     return (
       <div className="upload-popup-overlay">
         <div className="upload-popup">
-          <h3>Upload Google Sheet Link</h3>
-          <input
-            type="text"
-            placeholder="Google Sheets URL"
-            value={sheetUrl}
-            onChange={(e) => setSheetUrl(e.target.value)}
-          />
-          <div className="popup-buttons">
-            <button onClick={onClose}>Cancel</button>
-            <button onClick={handleUpload} disabled={!sheetUrl}>
-              Upload
+          <div className="popup-header">
+            <h3>Upload Google Sheet</h3>
+            <button className="close-btn" onClick={onClose}>
+              <IoMdClose />
+            </button>
+          </div>
+          <div className="popup-body">
+            <p>Paste the link to your Google Sheet below:</p>
+            <input
+              type="text"
+              placeholder="https://docs.google.com/spreadsheets/..."
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
+              className="sheet-url-input"
+            />
+          </div>
+          <div className="popup-footer">
+            <button className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleUpload}
+              disabled={!sheetUrl}
+            >
+              <FaPaperclip /> Upload Sheet
             </button>
           </div>
         </div>
@@ -403,22 +484,39 @@ const EventDetails = () => {
 
   return (
     <div className="event-details-container">
-      <h1 className="event-title">
-        {loading ? "Loading..." : eventTitle || "Event Not Found"}
-      </h1>
-
-      <nav className="event-nav">
+      <div className="event-header">
+        <h1 className="event-title">
+          {loading ? "Loading..." : eventTitle || "Event Not Found"}
+        </h1>
+        {/* <div className="event-actions"> */}
         <button
-          className={activeTab === "registration" ? "active" : ""}
+          className="btn-primary"
+          onClick={() => setShowUploadPopup(true)}
+          disabled={uploading}
+        >
+          {uploading ? (
+            "Uploading..."
+          ) : (
+            <>
+              <FaPlus /> Add Sheet
+            </>
+          )}
+        </button>
+        {/* </div> */}
+      </div>
+
+      <nav className="event-tabs">
+        <button
+          className={`tab-btn ${activeTab === "registration" ? "active" : ""}`}
           onClick={() => setActiveTab("registration")}
         >
-          Attendee Registration
+          <FaFolder /> Attendees
         </button>
         <button
-          className={activeTab === "feedback" ? "active" : ""}
+          className={`tab-btn ${activeTab === "feedback" ? "active" : ""}`}
           onClick={() => setActiveTab("feedback")}
         >
-          Feedback
+          <FaEnvelope /> Feedback
         </button>
       </nav>
 
@@ -426,61 +524,61 @@ const EventDetails = () => {
         <div className="event-main">
           {activeTab === "registration" && (
             <div className="registration-section">
-              <h3>
-                Attendees Registration
-                <div className="upload-button-container">
-                  <button
-                    onClick={() => setShowUploadPopup(true)}
-                    disabled={uploading}
-                  >
-                    {uploading ? "Uploading..." : "Upload Google Sheet Link"}
+              <div className="section-header">
+                <h2>Attendee Management</h2>
+                {/* {columnHeaders.length > 0 && (
+                  <button className="btn-secondary" onClick={handleAddRow}>
+                    <FaPlus /> Add Attendee
                   </button>
-                </div>
-              </h3>
+                )} */}
+              </div>
 
-              {/* Display cards for all uploaded Google Sheets */}
               {googleSheets.length > 0 && (
-                <div className="sheet-cards-container">
+                <div className="sheet-grid">
                   {googleSheets.map((sheet) => (
-                    <div key={sheet.url} className="sheet-card">
-                      <span className="folder-icon">
-                        <FaFolder />
-                      </span>
-                      <span
-                        className="sheet-title"
-                        onClick={() => handleSheetClick(sheet.url, sheet.title)}
-                      >
-                        {sheet.title}
-                      </span>
-                      <div className="ellipsis-menu" ref={dropdownRef}>
+                    <div
+                      key={sheet.url}
+                      className={`sheet-card ${
+                        activeSheetUrl === sheet.url ? "active" : ""
+                      }`}
+                      onClick={() => handleSheetClick(sheet.url, sheet.title)}
+                    >
+                      <div className="sheet-card-content">
+                        <span className="folder-icon">
+                          <FaFolder />
+                        </span>
+                        <span className="sheet-title">{sheet.title}</span>
+                      </div>
+                      <div className="sheet-actions" ref={dropdownRef}>
                         <button
-                          className="ellipsis-icon"
+                          className="action-btn"
                           onClick={(e) => {
-                            e.stopPropagation(); // Prevent event bubbling
+                            e.stopPropagation();
+                            console.log("Dropdown clicked", sheet.url);
                             setOpenDropdownUrl(
                               openDropdownUrl === sheet.url ? null : sheet.url
-                            ); // Toggle dropdown
+                            );
                           }}
                         >
-                          ⋮
+                          <FaEllipsisV />
                         </button>
                         {openDropdownUrl === sheet.url && (
-                          <div className="dropdown-content">
+                          <div className="dropdown-menu1">
                             <button
                               onClick={(e) => {
-                                e.stopPropagation(); // Prevent event bubbling
+                                e.stopPropagation();
                                 handleCopySheetLink(sheet.url);
                               }}
                             >
-                              Copy Sheet Link
+                              <FaRegCopy /> Copy Link
                             </button>
                             <button
                               onClick={(e) => {
-                                e.stopPropagation(); // Prevent event bubbling
+                                e.stopPropagation();
                                 handleDeleteSheet(sheet.url);
                               }}
                             >
-                              Delete
+                              <FaTrashAlt /> Delete
                             </button>
                           </div>
                         )}
@@ -489,15 +587,16 @@ const EventDetails = () => {
                   ))}
                 </div>
               )}
-              {/* Add Row Button and Sheet Title */}
+
               {columnHeaders.length > 0 && (
-                <div className="table-container">
-                  <table>
+                <div className="table-wrapper">
+                  <table className="attendee-table">
                     <thead>
                       <tr>
                         {columnHeaders.map((header, index) => (
                           <th key={index}>{header}</th>
                         ))}
+                        {/* <th>Actions</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -505,7 +604,7 @@ const EventDetails = () => {
                         <tr key={rowIndex}>
                           {columnHeaders.map((header, columnIndex) => (
                             <td key={columnIndex}>
-                              {header === "Status" ? ( // Render dropdown for "Status" column
+                              {header === "Status" ? (
                                 <select
                                   value={attendee[header]}
                                   onChange={(e) => {
@@ -513,13 +612,14 @@ const EventDetails = () => {
                                       rowIndex,
                                       header,
                                       e.target.value
-                                    ); // Update local state
+                                    );
                                     handleSaveChanges(
                                       rowIndex,
                                       header,
                                       e.target.value
-                                    ); // Save to backend
+                                    );
                                   }}
+                                  className="status-select"
                                 >
                                   <option value="absent">Absent</option>
                                   <option value="attended">Present</option>
@@ -546,14 +646,50 @@ const EventDetails = () => {
                                       e.target.value
                                     )
                                   }
+                                  className="attendee-field"
                                 />
                               )}
                             </td>
                           ))}
+
+                          {/* <td>
+  <button 
+    className="delete-row-btn"
+    onClick={() => handleDeleteRow(rowIndex)}
+    title="Delete row"
+    disabled={deletingRow === rowIndex}
+  >
+    {deletingRow === rowIndex ? (
+      "Deleting..."
+    ) : (
+      <FaTrashAlt />
+    )}
+  </button>
+</td> */}
                         </tr>
                       ))}
                     </tbody>
+                   
                   </table>
+                  <div className="add-attendee-footer">
+                      <button className="btn-secondary" onClick={handleAddRow}>
+                        <FaPlus /> Add Attendee
+                      </button>
+                    </div>
+                </div>
+              )}
+
+              {googleSheets.length === 0 && (
+                <div className="empty-state">
+                  <FaFolder className="empty-icon" />
+                  <h3>No Google Sheets Added</h3>
+                  <p>Upload a Google Sheet to start managing attendees</p>
+                  <button
+                    className="btn-primary"
+                    onClick={() => setShowUploadPopup(true)}
+                  >
+                    <FaPlus /> Add Your First Sheet
+                  </button>
                 </div>
               )}
             </div>
@@ -561,19 +697,12 @@ const EventDetails = () => {
 
           {activeTab === "feedback" && (
             <div className="feedback-section">
-              {/* <h2>Feedback Section</h2> */}
-
               <div className="feedback-container">
-                {/* Left Side: Sheet Selector, Active Sheet, and Attendee Emails */}
-                <div className="left-side">
-                  {/* Dropdown to select a sheet */}
+                <div className="feedback-sidebar">
+                  <h3>Feedback Recipients</h3>
                   <div className="sheet-selector">
-                    <p>
-                      Send feedback emails to attendees who attended the event.
-                    </p>
-                    <label htmlFor="sheet-select">Select Sheet:</label>
+                    <label>Select Sheet:</label>
                     <select
-                      id="sheet-select"
                       onChange={(e) => handleSheetSelect(e.target.value)}
                       value={activeSheetUrl}
                     >
@@ -586,100 +715,95 @@ const EventDetails = () => {
                     </select>
                   </div>
 
-                  {/* Display active sheet title */}
                   {activeSheetUrl && (
-                    <h4>
-                      Active Sheet :{" "}
-                      {
-                        googleSheets.find(
-                          (sheet) => sheet.url === activeSheetUrl
-                        )?.title
-                      }
-                    </h4>
+                    <div className="active-sheet-info">
+                      <h4>Active Sheet:</h4>
+                      <p className="sheet-name">
+                        {
+                          googleSheets.find(
+                            (sheet) => sheet.url === activeSheetUrl
+                          )?.title
+                        }
+                      </p>
+                    </div>
                   )}
 
-                  {/* Display emails of attendees marked as "Present" */}
-                  <div className="attendee-emails">
+                  <div className="recipient-list">
+                    <h4>Attendees Marked as Present:</h4>
                     {getPresentAttendees().length > 0 ? (
                       <ul>
                         {getPresentAttendees().map((attendee, index) => (
-                          <li key={index}>{attendee.Email}</li>
+                          <li key={index}>
+                            <span className="email-badge">
+                              {attendee.Email}
+                            </span>
+                          </li>
                         ))}
                       </ul>
                     ) : (
-                      <p>No attendees marked as "Present".</p>
+                      <div className="empty-recipients">
+                        No attendees marked as "Present"
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Right Side: Feedback Form */}
-                <div className="right-side">
-                  <div className="feedback-form">
-                    <h3>Send Feedback Emails</h3>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
+                <div className="feedback-form-container">
+                  <h3>Compose Feedback Email</h3>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const emails = editableEmails
+                        .split(",")
+                        .map((email) => email.trim())
+                        .filter((email) => email);
 
-                        // Split the editableEmails string into an array of emails
-                        const emails = editableEmails
-                          .split(",")
-                          .map((email) => email.trim())
-                          .filter((email) => email); // Remove empty strings
+                      if (emails.length === 0) {
+                        alert("Please add at least one valid email address.");
+                        return;
+                      }
 
-                        if (emails.length === 0) {
-                          alert("Please add at least one valid email address.");
-                          return;
-                        }
+                      await sendFeedbackEmail(
+                        emails,
+                        e.target.subject.value,
+                        e.target.message.value
+                      );
+                    }}
+                  >
+                    <div className="form-group">
+                      <label>To:</label>
+                      <textarea
+                        value={editableEmails}
+                        onChange={(e) => setEditableEmails(e.target.value)}
+                        placeholder="Enter recipient emails, separated by commas"
+                        rows={3}
+                      />
+                    </div>
 
-                        // Get subject and message from the form
-                        const subject = e.target.subject.value;
-                        const message = e.target.message.value;
+                    <div className="form-group">
+                      <label>Subject:</label>
+                      <input
+                        type="text"
+                        name="subject"
+                        placeholder="Enter email subject"
+                        required
+                      />
+                    </div>
 
-                        // Send feedback emails
-                        await sendFeedbackEmail(emails, subject, message);
-                      }}
-                    >
-                      {/* "To:" Field */}
-                      <div className="form-group">
-                        <label htmlFor="to">To:</label>
-                        <textarea
-                          id="to"
-                          name="to"
-                          value={editableEmails}
-                          onChange={(e) => setEditableEmails(e.target.value)}
-                          placeholder="Enter recipient emails, separated by commas"
-                          rows={3}
-                          style={{ width: "100%" }}
-                        />
-                      </div>
+                    <div className="form-group">
+                      <label>Message:</label>
+                      <textarea
+                        name="message"
+                        placeholder="Enter your feedback message"
+                        rows={6}
+                        required
+                      />
+                    </div>
 
-                      {/* Subject Field */}
-                      <div className="form-group">
-                        <label htmlFor="subject">Subject:</label>
-                        <input
-                          type="text"
-                          id="subject"
-                          name="subject"
-                          placeholder="Enter email subject"
-                          required
-                        />
-                      </div>
-
-                      {/* Message Field */}
-                      <div className="form-group">
-                        <label htmlFor="message">Message:</label>
-                        <textarea
-                          id="message"
-                          name="message"
-                          placeholder="Enter email message"
-                          required
-                        />
-                      </div>
-
-                      {/* Submit Button */}
-                      <button type="submit">Send</button>
-                    </form>
-                  </div>
+                    <button type="submit" className="btn-primary send-btn">
+                      <FaEnvelope /> Send Feedback
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
@@ -691,7 +815,6 @@ const EventDetails = () => {
         </div>
       </div>
 
-      {/* Upload Popup */}
       {showUploadPopup && (
         <UploadPopup
           onClose={() => setShowUploadPopup(false)}

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './login.css';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { AuthContext } from '../AuthContext'; // Import the AuthContext
 
 const SITE_KEY = '6LdS7qIqAAAAABLLeQHDUNylcYpE4rNn1bvdgS0i';
 
@@ -10,19 +11,20 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // To show loading state
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setShouldCheckGoogleAuth } = useContext(AuthContext); // Get the context function
 
   const [recaptchaToken, setRecaptchaToken] = useState('');
 
   const onChange = (value) => {
-    setRecaptchaToken(value); // Store the reCAPTCHA token
+    setRecaptchaToken(value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true); // Show loading indicator during login
+    setLoading(true);
 
     if (!recaptchaToken) {
       setError('Please complete the CAPTCHA.');
@@ -34,7 +36,7 @@ const Login = () => {
       const response = await axios.post('http://localhost:5001/api/auth/login', {
         email,
         password,
-        recaptchaToken, // Send reCAPTCHA token to the server
+        recaptchaToken,
       });
 
       console.log('Login successful:', response.data);
@@ -44,12 +46,15 @@ const Login = () => {
       localStorage.setItem('userId', response.data.userId);
       localStorage.setItem('username', response.data.username);
       localStorage.setItem('email', response.data.email);
-      localStorage.setItem("status", response.data.status); // Assuming status is available in the response
+      localStorage.setItem("status", response.data.status);
 
       // Fetch user data after login
       await fetchUserData(response.data.token);
 
-      // Navigate to appropriate dashboard based on user role
+      // Notify AuthContext that login was successful
+      setShouldCheckGoogleAuth(true);
+
+      // Navigate to appropriate dashboard
       if (response.data.isAdmin) {
         navigate('/admin-main');
       } else {
@@ -58,7 +63,7 @@ const Login = () => {
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false); // Hide loading indicator after login attempt
+      setLoading(false);
     }
   };
 

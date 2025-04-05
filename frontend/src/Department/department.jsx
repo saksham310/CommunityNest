@@ -153,7 +153,7 @@ const Department = () => {
     <div className="departments-container">
       <div className="header-wrapper">
         <div className="header-titles">
-          <h1>Departments</h1>
+          <h1>Department Workspace</h1>
           <p className="subtitle">Organize your documents by department</p>
         </div>
         

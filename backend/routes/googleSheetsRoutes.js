@@ -248,4 +248,65 @@ router.post("/send-feedback-emails", async (req, res) => {
 });
 
 
+// router.delete("/delete-row", async (req, res) => {
+//   console.log("Delete row request received:", req.body);
+  
+//   try {
+//     const { sheetUrl, rowNumber } = req.body; // Changed from rowIndex to rowNumber
+
+//     // Validate inputs
+//     if (!sheetUrl || typeof sheetUrl !== 'string') {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Valid sheet URL is required"
+//       });
+//     }
+
+//     if (typeof rowNumber !== 'number' || rowNumber < 1) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Valid row number (>=1) is required"
+//       });
+//     }
+
+//     const sheetId = extractSheetId(sheetUrl);
+//     if (!sheetId) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Invalid Google Sheet URL"
+//       });
+//     }
+
+//     const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
+//     await doc.loadInfo();
+    
+//     const sheet = doc.sheetsByIndex[0];
+//     const rows = await sheet.getRows();
+    
+//     // Validate row exists
+//     if (rowNumber > rows.length + 1) { // +1 because header row doesn't count in getRows()
+//       return res.status(400).json({
+//         success: false,
+//         error: `Row ${rowNumber} doesn't exist in sheet`
+//       });
+//     }
+
+//     // Delete the row (using rowNumber directly as it's 1-based)
+//     await sheet.deleteRows(rowNumber - 1, 1); // Convert to 0-based for the API
+    
+//     return res.json({
+//       success: true,
+//       message: `Row ${rowNumber} deleted successfully`
+//     });
+
+//   } catch (error) {
+//     console.error("Row deletion error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: "Failed to delete row",
+//       details: error.message
+//     });
+//   }
+// });
+
 module.exports = router;

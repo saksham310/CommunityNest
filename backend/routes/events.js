@@ -26,7 +26,7 @@ const upload = multer({ storage });
 // Create an Event (with status field)
 router.post("/", authenticate, upload.single("image"), async (req, res) => {
   try {
-    const { title, date, time, status = "Private" } = req.body;
+    const { title, description, date, time, status = "Private" } = req.body;
 
     if (!title || !date || !time || !req.file) {
       return res.status(400).json({ 
@@ -47,12 +47,13 @@ router.post("/", authenticate, upload.single("image"), async (req, res) => {
 
         const newEvent = new Event({
           title,
+          description: description || "", // Add this line
           date,
           time,
           image: result.secure_url,
           createdBy: req.userId,
-          status, // Include status from request (defaults to "Private")
-          googleSheets: [] // Initialize empty array
+          status,
+          googleSheets: []
         });
 
         await newEvent.save();
@@ -89,10 +90,8 @@ router.get("/", authenticate, async (req, res) => {
     // For community admins - fetch all their own events
     if (user.status === "community") {
       events = await Event.find({ createdBy: req.userId })
-        .sort({ createdAt: -1 });
-    } 
-    // For members - fetch only their admin's events
-    else if (user.status === "member") {
+        .sort({ createdAt: -1 }); // This ensures newest first
+    } else if (user.status === "member") {
       const adminId = user.communityDetails[0]?.adminId;
       
       if (!adminId) {
@@ -103,10 +102,8 @@ router.get("/", authenticate, async (req, res) => {
       }
 
       events = await Event.find({ createdBy: adminId })
-        .sort({ createdAt: -1 });
-    } 
-    // For other user types (if any)
-    else {
+        .sort({ createdAt: -1 }); // This ensures newest first
+    } else {
       events = [];
     }
 
@@ -173,9 +170,8 @@ router.delete("/:id", authenticate, async (req, res) => {
 // Update an event
 router.put("/:id", authenticate, async (req, res) => {
   try {
-    const { title, date, time, status } = req.body;
+    const { title, description, date, time, status } = req.body;
     
-    // First find the event to check ownership
     const existingEvent = await Event.findById(req.params.id);
     
     if (!existingEvent) {
@@ -185,7 +181,6 @@ router.put("/:id", authenticate, async (req, res) => {
       });
     }
     
-    // Authorization check - only creator can update
     if (existingEvent.createdBy.toString() !== req.userId) {
       return res.status(403).json({ 
         success: false,
@@ -195,7 +190,7 @@ router.put("/:id", authenticate, async (req, res) => {
 
     const updatedEvent = await Event.findByIdAndUpdate(
       req.params.id,
-      { title, date, time, status },
+      { title, description, date, time, status },
       { new: true }
     );
 
@@ -323,5 +318,89 @@ router.post("/send-feedback-email", ensureAuthenticated, async (req, res) => {
       res.status(500).json({ error: "Failed to send feedback emails", details: error.message });
   }
 });
+
+
+// Add row to Google Sheet
+router.post('/google-sheets/add-row', async (req, res) => {
+  try {
+    const { sheetUrl, rowData } = req.body;
+    
+    // Your implementation to add row to Google Sheet
+    // This will depend on how you're interacting with Google Sheets API
+    const newRow = await addRowToSheet(sheetUrl, rowData);
+    
+    res.json({ success: true, newRow });
+  } catch (error) {
+    console.error('Error adding row:', error);
+    res.status(500).json({ success: false, message: 'Failed to add row' });
+  }
+});
+
+// // Add this to your routes/events.js
+// router.delete('/google-sheets/delete-row', async (req, res) => {
+//   try {
+//     const { sheetUrl, rowIndex } = req.body;
+    
+//     // You'll need to implement this function based on your Google Sheets API setup
+//     await deleteRowFromSheet(sheetUrl, rowIndex);
+    
+//     res.json({ success: true });
+//   } catch (error) {
+//     console.error('Error deleting row:', error);
+//     res.status(500).json({ success: false, message: 'Failed to delete row' });
+//   }
+// });
+// Add this to your googleSheetsRoutes.js
+
+// router.delete("/google-sheets/delete-row", async (req, res) => {
+//   const { sheetUrl, rowIndex } = req.body;
+
+//   // Validate input
+//   if (!sheetUrl || rowIndex === undefined || rowIndex < 1) {
+//     return res.status(400).json({ 
+//       success: false, 
+//       error: "Sheet URL and valid row index (1-based) are required" 
+//     });
+//   }
+
+//   try {
+//     const sheetId = sheetUrl.match(/\/d\/([^\/]+)/)?.[1];
+//     if (!sheetId) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         error: "Invalid Google Sheet URL" 
+//       });
+//     }
+
+//     const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
+//     await doc.loadInfo();
+
+//     const sheet = doc.sheetsByIndex[0];
+//     const rowCount = await sheet.getRows().then(rows => rows.length);
+    
+//     if (rowIndex > rowCount) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         error: "Row index out of bounds" 
+//       });
+//     }
+
+//     // Delete the row (0-based index)
+//     await sheet.deleteRows(rowIndex - 1, 1);
+
+//     res.json({ 
+//       success: true, 
+//       message: "Row deleted successfully" 
+//     });
+//   } catch (error) {
+//     console.error("Error deleting row:", error);
+//     res.status(500).json({ 
+//       success: false, 
+//       error: "Failed to delete row",
+//       details: error.message 
+//     });
+//   }
+// });
+
 
 module.exports = router;
