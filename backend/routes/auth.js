@@ -23,6 +23,13 @@ const transporter = nodemailer.createTransport({
 });
 
 
+
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+
 // Signup Route
 router.post("/signup", async (req, res) => {
   const { username, email, password, status } = req.body;
@@ -136,15 +143,18 @@ router.post('/login', async (req, res) => {
     console.log('Login successful, token generated'); // Log token generation success
 
     // Send response with user details, token, and communities
-    res.status(200).json({ 
-      message: 'Login successful', 
-      userId: user._id, 
-      isAdmin, 
-      token,
-      username: user.username, // Return the username
-      email: user.email, // Return the email
-      communities: user.communities, // Return user communities (if needed)
-    });
+   // In auth.js login route
+res.status(200).json({ 
+  message: 'Login successful', 
+  userId: user._id, 
+  isAdmin, 
+  token,
+  username: user.username,
+  email: user.email,
+  profileImage: user.profileImage || null, // Ensure this is included
+  status: user.status, // Add this line
+  communities: user.communities,
+});
     
   } catch (err) {
     console.error('Login error:', err.message || err); // Log error details for debugging
@@ -371,4 +381,100 @@ router.get('/check-google-auth', authenticate, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+
+
+
+
+// Upload profile image
+router.post("/upload-profile-image", authenticate, upload.single("profileImage"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    cloudinary.uploader.upload_stream(
+      { folder: "profile-images" },
+      async (error, result) => {
+        if (error) {
+          return res.status(500).json({ success: false, message: "Error uploading image" });
+        }
+
+        // Update user in database
+        await User.findByIdAndUpdate(req.userId, { profileImage: result.secure_url });
+
+        res.json({ 
+          success: true, 
+          imageUrl: result.secure_url 
+        });
+      }
+    ).end(req.file.buffer);
+  } catch (error) {
+    console.error("Error uploading profile image:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Remove profile image
+router.delete("/remove-profile-image", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    
+    if (!user.profileImage) {
+      return res.json({ success: true });
+    }
+
+    // Extract public ID from URL
+    const publicId = user.profileImage.split("/").pop().split(".")[0];
+    
+    // Delete from Cloudinary
+    await cloudinary.uploader.destroy(`profile-images/${publicId}`);
+
+    // Update user in database
+    await User.findByIdAndUpdate(req.userId, { $unset: { profileImage: 1 } });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error removing profile image:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.get("/user", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("username email profileImage");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({
+      username: user.username,
+      email: user.email,
+      profileImage: user.profileImage || null
+    });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get('/community/:id', authenticate, async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id)
+      .populate('admin', 'profileImage username email');
+    
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+    
+    res.json({
+      _id: community._id,
+      name: community.name,
+      admin: community.admin,
+      members: community.members
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./member.css";
 import Sidebar from "../Sidebar/sidebar.jsx"; // Import Sidebar
+import { FiPlus, FiTrash2, FiUser, FiMail } from "react-icons/fi";
 
 const MembersPage = () => {
   const [members, setMembers] = useState([]);
@@ -155,69 +156,97 @@ const MembersPage = () => {
   
 
   return (
-    <div className="p-4">
+    <div className="members-page-container">
       <Sidebar />
-      <div className="content">
-        <h2 className="text-2xl font-bold mb-4">Community Members</h2>
+      <div className="members-content">
+        <div className="members-header">
+          <h2 className="members-title">
+            {/* <FiUser className="header-icon" /> */}
+            Community Members
+          </h2>
+          
+          {userStatus === "community" && (
+            <div className="add-member-card">
+              <h4 className="add-member-title">Add New Members</h4>
+              <div className="add-member-form">
+                <div className="input-group">
+                  <FiMail className="input-icon" />
+                  <input
+                    type="email"
+                    placeholder="Enter member email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="member-input"
+                  />
+                </div>
+                <button
+                  onClick={addMember}
+                  disabled={adding}
+                  className="add-member-button"
+                >
+                  <FiPlus className="button-icon" />
+                  {adding ? "Adding..." : "Add Member"}
+                </button>
+              </div>
+            </div>
+          )}
 
-        {/* Conditionally render Add Member Form based on user's status */}
-        {userStatus === "community" && (
-          <div className="add-member-form">
-            <input
-              type="email"
-              placeholder="Enter member email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-box"
-            />
-            <button
-              onClick={addMember}
-              disabled={adding}
-              className="add-button"
-            >
-              {adding ? "Adding..." : "Add Member"}
-            </button>
-          </div>
-        )}
+          {message && (
+            <div className={`message-box ${message.includes("Error") ? "error" : "success"}`}>
+              {message}
+            </div>
+          )}
+        </div>
 
-        {message && <p className="message">{message}</p>}
-
-        {/* Members List */}
-        {loading ? (
-          <p>Loading members...</p>
-        ) : members.length > 0 ? (
-          <table className="w-full border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-4 py-2">Username</th>
-                <th className="border px-4 py-2">Email</th>
-                <th className="border px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member._id} className="border">
-                  <td className="border px-4 py-2">{member.username}</td>
-                  <td className="border px-4 py-2">{member.email}</td>
-                  <td className="border px-4 py-2">
-                    {/* Remove member button */}
-                    <button
-                      onClick={() => removeMember(member._id)}
-                      className={`remove-button ${
-                        userStatus !== "community" ? "disabled" : ""
-                      }`}
-                      disabled={userStatus !== "community"}
-                    >
-                      Remove
-                    </button>
-                  </td>
+        <div className="members-table-container">
+          {loading ? (
+            <div className="loading-spinner">
+              <div className="spinner"></div>
+              <p>Loading members...</p>
+            </div>
+          ) : members.length > 0 ? (
+            <table className="members-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  {userStatus === "community" && <th>Actions</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No members found.</p>
-        )}
+              </thead>
+              <tbody>
+                {members.map((member) => (
+                  <tr key={member._id}>
+                    <td>
+                      <div className="member-info">
+                        <div className="member-avatar">
+                          {member.username.charAt(0).toUpperCase()}
+                        </div>
+                        {member.username}
+                      </div>
+                    </td>
+                    <td>{member.email}</td>
+                    {userStatus === "community" && (
+                      <td>
+                        <button
+                          onClick={() => removeMember(member._id)}
+                          className="remove-member-button"
+                          title="Remove member"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty-state">
+              <FiUser className="empty-icon" />
+              <p>No members found in this community</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

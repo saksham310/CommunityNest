@@ -47,6 +47,7 @@ const Login = () => {
       localStorage.setItem('username', response.data.username);
       localStorage.setItem('email', response.data.email);
       localStorage.setItem("status", response.data.status);
+      localStorage.setItem("profileImage", response.data.profileImage || ""); // Store empty string if no image
 
       // Fetch user data after login
       await fetchUserData(response.data.token);

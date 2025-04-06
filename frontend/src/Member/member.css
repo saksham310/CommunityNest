@@ -1,101 +1,266 @@
-/* General Page Styling */
-.p-4 {
-    padding: 16px;
-    font-family: "Arial", sans-serif;
-    background-color: #f4f4f4;
-    min-height: 100vh;
+/* Main Layout */
+.members-page-container {
     display: flex;
+    min-height: 100vh;
+    background-color: #f8fafc;
+    margin-top: 75px;
+  }
   
-}
-
-/* Content Wrapper */
-.content {
+  .members-content {
     flex: 1;
-    padding: 20px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin-left: 260px; /* To prevent overlap with sidebar */
-}
+    padding: 2rem;
+    margin-left: 260px;
+  }
+  
+  /* Header Styles */
+  .members-header {
+    margin-bottom: 2rem;
+  }
+  
 
-/* Heading */
-h2 {
-    font-size: 24px;
-    font-weight: bold;
-    color: #333;
-    text-align: center;
-    margin-bottom: 20px;
-    margin-top: 70px;
-}
-
-/* Table Styling */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-th,
-td {
-    padding: 12px;
+   
+  .members-title{
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+        text-align: left;
+        margin-bottom: 14px;
+      }
+  
+  
+  .header-icon {
+    font-size: 1.5rem;
+  }
+  
+  /* Add Member Card */
+  .add-member-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+  }
+  
+  .add-member-title {
+    font-size: 14px;
+    font-weight: 520;
+    color: #626262;
+    margin-bottom: 0.7rem;
     text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-th {
-    background-color: #3498db;
+  }
+  
+  .add-member-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+  }
+  
+  .input-group {
+    flex: 1;
+    position: relative;
+  }
+  
+  .member-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+  }
+  
+  .member-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+  }
+  
+  .input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+  }
+  
+  .add-member-button {
+    background-color: #3b82f6;
     color: white;
-    font-weight: bold;
-}
-
-tr:hover {
-    background-color: #f1f1f1;
-}
-
-/* Loader & No Data Message */
-p {
-    text-align: center;
-    font-size: 16px;
-    color: #555;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .Sidebar {
-        width: 100%;
-        position: fixed;
-        height: auto;
-        padding: 10px;
-    }
-
-    .content {
-        margin-left: 0;
-        padding: 10px;
-    }
-
-    table {
-        font-size: 14px;
-    }
-
-    th,
-    td {
-        padding: 8px;
-    }
-
-    /* Consider collapsing sidebar for mobile screens */
-    .Sidebar {
-        display: none; /* Example for hidden sidebar on small screens */
-    }
-
-    .content {
-        margin-top: 60px; /* Adjust margin for better header spacing */
-    }
-}
-.remove-button:disabled {
-    background-color: #ccc;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .add-member-button:hover {
+    background-color: #2563eb;
+  }
+  
+  .add-member-button:disabled {
+    background-color: #cbd5e1;
     cursor: not-allowed;
   }
   
+  .button-icon {
+    font-size: 1rem;
+  }
+  
+  /* Message Box */
+  .message-box {
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .message-box.success {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+  
+  .message-box.error {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+  }
+  
+  /* Table Styles */
+  .members-table-container {
+    background: none;
+    border-radius: 0.5rem;
+    /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
+    overflow: hidden;
+    padding: 0;
+  }
+  
+  .members-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .members-table th {
+    background-color: #f1f5f9;
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .members-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+    color: #334155;
+  }
+  
+  .members-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .members-table tr:hover {
+    background-color: #f8fafc;
+  }
+  
+  /* Member Info */
+  .member-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .member-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background-color: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 0.75rem;
+  }
+  
+  /* Remove Button */
+  .remove-member-button {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+  }
+  
+  .remove-member-button:hover {
+    background-color: #fee2e2;
+  }
+  
+  /* Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: #64748b;
+  }
+  
+  .empty-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #cbd5e1;
+  }
+  
+  /* Loading Spinner */
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+  }
+  
+  .spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .members-content {
+      margin-left: 0;
+      padding: 1rem;
+    }
+  
+    .add-member-form {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .members-table {
+      display: block;
+      overflow-x: auto;
+    }
+  }

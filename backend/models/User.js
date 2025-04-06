@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   resetToken: { type: String, required: false },
-
+  profileImage: { type: String }, // Add this line
   status: { type: String, enum: ["community", "member"], required: true },
 
   // If the user is a member, they can belong to multiple communities
