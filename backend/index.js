@@ -1,3 +1,4 @@
+
 const http = require('http');
 const express = require("express");
 const mongoose = require("mongoose");
@@ -22,6 +23,8 @@ const googleSheetsRoutes = require("./routes/googleSheetsRoutes");
 const googleAuth = require("./routes/googleAuth");
 // Add near other route imports
 const notificationRoutes = require('./routes/notifications');
+const jwt = require('jsonwebtoken'); 
+
 // Load environment variables
 dotenv.config();
 
@@ -40,6 +43,8 @@ const io = new SocketIOServer(server, {
   }
 });
 
+const Message = require('./models/Message'); // You'll need to create this model
+
 // Store connected clients
 const connectedClients = new Map();
 
@@ -47,8 +52,8 @@ const connectedClients = new Map();
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  // Handle authentication
-  socket.on('authenticate', (token) => {
+  // Handle authentication immediately when connection is established
+  socket.on('authenticate', async (token) => {
     try {
       const jwt = require('jsonwebtoken');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -58,10 +63,15 @@ io.on('connection', (socket) => {
       
       // Join user's personal room
       socket.join(`user_${decoded.userId}`);
-      console.log(`User ${decoded.userId} joined their room`);
       
-      // Send connection acknowledgement
+      // Add to connected clients map
+      connectedClients.set(decoded.userId, socket);
+      
+      console.log(`User ${decoded.userId} authenticated and joined their room`);
       socket.emit('authenticated', { success: true });
+      
+      // Send online status to all connected clients
+      updateOnlineUsers();
     } catch (error) {
       console.error('Socket authentication error:', error);
       socket.emit('authenticated', { success: false, error: 'Authentication failed' });
@@ -69,9 +79,92 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle private messages
+  socket.on('private-message', async (message) => {
+    try {
+      // Validate message
+      if (!message.sender || !message.recipient || !message.content) {
+        console.error('Invalid message format');
+        return;
+      }
+
+      // Save message to database
+      const newMessage = new Message({
+        sender: message.sender,
+        recipient: message.recipient,
+        content: message.content,
+        timestamp: message.timestamp || new Date()
+      });
+      
+      await newMessage.save();
+
+      // Emit to recipient's room
+      io.to(`user_${message.recipient}`).emit('private-message', newMessage);
+      
+      // Also emit to sender (for confirmation and sync)
+      io.to(`user_${message.sender}`).emit('private-message', newMessage);
+      
+      console.log(`Message sent from ${message.sender} to ${message.recipient}`);
+    } catch (error) {
+      console.error('Error handling private message:', error);
+    }
+  });
+
+  // Handle message history requests
+  socket.on('get-messages', async ({ userId1, userId2 }) => {
+    try {
+      const messages = await Message.find({
+        $or: [
+          { sender: userId1, recipient: userId2 },
+          { sender: userId2, recipient: userId1 }
+        ]
+      }).sort({ timestamp: 1 }).populate('sender recipient', 'username profileImage');
+
+      socket.emit('previous-messages', messages);
+    } catch (error) {
+      console.error('Error fetching message history:', error);
+    }
+  });
+
+  // socket.on('get-messages', async ({ userId1, userId2 }) => {
+  //   try {
+  //     const messages = await Message.find({
+  //       $or: [
+  //         { sender: userId1, recipient: userId2 },
+  //         { sender: userId2, recipient: userId1 }
+  //       ]
+  //     })
+  //     .sort({ timestamp: 1 })
+  //     .populate('sender recipient', 'username profileImage');
+  
+  //     // Mark messages as read
+  //     await Message.updateMany(
+  //       {
+  //         sender: userId2,
+  //         recipient: userId1,
+  //         read: false
+  //       },
+  //       { $set: { read: true } }
+  //     );
+  
+  //     socket.emit('previous-messages', messages);
+  //   } catch (error) {
+  //     console.error('Error fetching message history:', error);
+  //   }
+  // });
   socket.on('disconnect', () => {
     console.log(`User ${socket.userId} disconnected`);
+    if (socket.userId) {
+      connectedClients.delete(socket.userId);
+      updateOnlineUsers();
+    }
   });
+
+  // Helper function to update online users
+  function updateOnlineUsers() {
+    const onlineUsers = Array.from(connectedClients.keys());
+    io.emit('online-users', onlineUsers);
+  }
 });
 
 // Update the sendNotification utility

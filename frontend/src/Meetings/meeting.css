@@ -343,11 +343,12 @@
 .edit-modal {
   background: white;
   border-radius: 12px;
-  width: 45%;
+  width: 42%;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.3s ease-out;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  margin-top: 90px;
 }
 
 @keyframes slideUp {
@@ -416,11 +417,13 @@
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
+  margin-top: -10px;
+  text-align: left;
 }
 
 .form-group input,
 .form-group textarea {
-  width: 100%;
+  width: 94%;
   padding: 0.75rem 1rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;

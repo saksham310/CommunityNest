@@ -16,6 +16,7 @@ import logo from "../logo.png";
 import "./Header.css";
 import axios from "axios";
 
+
 const Header = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -52,19 +53,19 @@ const Header = () => {
               headers: { Authorization: `Bearer ${token}` },
             }
           );
-  
+
           // Always update from server response first
           if (response.data.profileImage) {
             localStorage.setItem("profileImage", response.data.profileImage);
-            setUser(prev => ({
+            setUser((prev) => ({
               ...prev,
-              profileImage: response.data.profileImage
+              profileImage: response.data.profileImage,
             }));
           } else {
             // Fallback to localStorage if no image in response
             const storedImage = localStorage.getItem("profileImage");
             if (storedImage) {
-              setUser(prev => ({ ...prev, profileImage: storedImage }));
+              setUser((prev) => ({ ...prev, profileImage: storedImage }));
             }
           }
         }
@@ -73,11 +74,11 @@ const Header = () => {
         // Fallback to localStorage if API fails
         const storedImage = localStorage.getItem("profileImage");
         if (storedImage) {
-          setUser(prev => ({ ...prev, profileImage: storedImage }));
+          setUser((prev) => ({ ...prev, profileImage: storedImage }));
         }
       }
     };
-  
+
     fetchUserData();
   }, []);
 
@@ -133,20 +134,20 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await axios.get("http://localhost:5001/api/auth/logout", {
-        withCredentials: true
+        withCredentials: true,
       });
-      
+
       // Only remove sensitive data
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
-      
+
       setUser({
         username: "Guest",
         email: "Not Available",
         profileImage: localStorage.getItem("profileImage") || null, // Keep profile image
       });
-      
+
       navigate("/login");
       setShowDropdown(false);
     } catch (error) {
@@ -231,7 +232,11 @@ const Header = () => {
 
       <div className="Header-right">
         {/* Message Icon */}
-        <div className="Message-icon-wrapper">
+        <div
+          className="Message-icon-wrapper"
+          onClick={() => navigate("/chat")}
+          style={{ cursor: "pointer" }}
+        >
           <FontAwesomeIcon icon={faComment} className="Icon" />
           <span className="Message-badge">3</span>
         </div>

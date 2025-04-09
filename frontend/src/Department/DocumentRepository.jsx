@@ -90,25 +90,24 @@ const DocumentRepositoryPage = () => {
     }
   }, [department, location.state]);
 
-  const fetchDocumentsAndFiles = async (deptId, fetchUserId) => {
+  const fetchDocumentsAndFiles = async (deptId) => {
     try {
+      // Always use the current userId - the backend will handle the member/community logic
       const [docsRes, filesRes] = await Promise.all([
-        axios.get(`${backendUrl}/getDocumentsByDepartmentAndUser/${deptId}/${fetchUserId}`),
-        axios.get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${deptId}/${fetchUserId}`)
+        axios.get(`${backendUrl}/getDocumentsByDepartmentAndUser/${deptId}/${userId}`),
+        axios.get(`${fileBackendUrl}/getFilesByDepartmentAndUser/${deptId}/${userId}`)
       ]);
   
-      // Set documents and files
       setDocuments(docsRes.data.documents || []);
       setFiles((filesRes.data.files || []).map(file => ({
         ...file,
         filePath: `http://localhost:5001/uploads/${file.filePath}`,
       })));
   
-      // Set department name from API response if available
+      // Use department name from response or fetch separately
       if (docsRes.data.departmentName) {
         setDepartmentName(docsRes.data.departmentName);
       } else {
-        // Fallback: fetch department name directly
         const nameResponse = await axios.get(
           `http://localhost:5001/api/department/getDepartment/${deptId}`
         );
@@ -116,11 +115,21 @@ const DocumentRepositoryPage = () => {
       }
   
       setErrorMessage(null);
-    }  catch (err) {
+    } catch (err) {
       console.error("Error fetching data:", err);
       setErrorMessage("Failed to load documents");
     }
   };
+  
+  // Then in your useEffect:
+  useEffect(() => {
+    if (!userId) {
+      setErrorMessage("Please login to access documents");
+      navigate("/login");
+      return;
+    }
+    fetchDocumentsAndFiles(department);
+  }, [department, userId]);
 
   const deleteDocument = (id) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
@@ -228,7 +237,7 @@ const DocumentRepositoryPage = () => {
               {documents.map((doc) => (
                 <DocumentCard
                   key={doc._id}
-                  type="document"
+                  type="Document"
                   title={doc.title}
                   createdAt={doc.createdAt}
                   updatedAt={doc.updatedAt}
@@ -258,7 +267,7 @@ const DocumentRepositoryPage = () => {
               {files.map((file) => (
                 <DocumentCard
                   key={file._id}
-                  type="file"
+                  type="File"
                   title={file.filename}
                   createdAt={file.uploadedAt}
                   onView={() => handleViewClick(file)}
@@ -280,7 +289,7 @@ const DocumentRepositoryPage = () => {
               <input
                 type="file"
                 id="file-upload"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf"
                 onChange={(e) => setSelectedFile(e.target.files[0])}
               />
               <label htmlFor="file-upload" className="file-upload-label">

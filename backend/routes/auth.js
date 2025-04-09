@@ -5,7 +5,7 @@ const nodemailer = require("nodemailer"); // To send emails
 const router = express.Router();
 const Community = require("../models/Community");
 const authenticate = require("./authenticate"); 
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken here
+const jwt = require('jsonwebtoken'); 
 
 
 
@@ -287,74 +287,6 @@ router.get("/logout", (req, res) => {
   }
 });
 
-
-
-
-// // Add to auth.js
-// router.get('/check-google-auth', authenticate, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.userId);
-//     if (!user) return res.json({ isGoogleAuthed: false });
-
-//     const isAuthed = !!user.googleAuthToken && 
-//                    new Date(user.googleAuthExpiry) > new Date();
-    
-//     res.json({
-//       isGoogleAuthed: isAuthed,
-//       email: user.email,
-//       expiresAt: user.googleAuthExpiry?.getTime() || 0 // Return as timestamp
-//     });
-//   } catch (error) {
-//     console.error("Auth check error:", error);
-//     res.json({ isGoogleAuthed: false });
-//   }
-// });
-
-// // After successful Google auth
-// router.get("/google-auth-success", authenticate, async (req, res) => {
-//   try {
-//     await User.findByIdAndUpdate(req.userId, {
-//       googleAuthToken: req.query.token,
-//       googleRefreshToken: req.query.refreshToken,
-//       googleAuthExpiry: new Date(Date.now() + req.query.expires_in * 1000),
-//       hasSeenGooglePopup: true
-//     });
-//     res.redirect('/'); // Or to any success page
-//   } catch (error) {
-//     res.status(500).json({ message: "Error saving Google auth" });
-//   }
-// });
-
-// // Token refresh endpoint
-// router.post('/refresh-google-token', async (req, res) => {
-//   try {
-//     const { refreshToken } = req.body;
-//     const response = await axios.post('https://oauth2.googleapis.com/token', {
-//       client_id: process.env.GOOGLE_CLIENT_ID,
-//       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-//       refresh_token: refreshToken,
-//       grant_type: 'refresh_token'
-//     });
-
-//     // Update user in database
-//     await User.findByIdAndUpdate(req.userId, {
-//       googleAuthToken: response.data.access_token,
-//       googleAuthExpiry: new Date(Date.now() + response.data.expires_in * 1000)
-//     });
-
-//     res.json({
-//       access_token: response.data.access_token,
-//       expires_in: response.data.expires_in
-//     });
-//   } catch (error) {
-//     console.error("Token refresh failed:", error);
-//     res.status(401).json({ error: 'Token refresh failed' });
-//   }
-// });
-
-
-// Add these routes to your auth.js
-
 // Store Google auth in user model
 router.post('/store-google-auth', authenticate, async (req, res) => {
   try {
@@ -474,6 +406,16 @@ router.get('/community/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.userId } })
+      .select('username email status profileImage');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching users' });
   }
 });
 

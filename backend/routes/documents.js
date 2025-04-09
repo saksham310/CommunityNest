@@ -64,6 +64,7 @@ router.post("/createDocument", async (req, res) => {
 
 
 // Get documents by department and user (handles community & member status)
+// Get documents by department and user (handles community & member status)
 router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req, res) => {
   try {
     const { departmentId, userId } = req.params;
@@ -73,39 +74,38 @@ router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req,
     }
 
     // Find user details
-    const user = await User.findById(userId).populate("communityDetails.communityId");
-
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    let fetchUserId = userId; // Default: use logged-in userId
+    // For members, we want to get documents created by their admin
+    // For communities, we want their own documents
+    const queryUserId = user.status === "member" && user.communityDetails[0]?.adminId 
+      ? user.communityDetails[0].adminId 
+      : userId;
 
-    if (user.status === "member") {
-      const adminId = user.communityDetails[0]?.adminId; // Fetch the admin ID for the community
-      if (!adminId) {
-        return res.status(400).json({ success: false, message: "Admin ID not found for the member" });
-      }
-      fetchUserId = adminId; // Use adminId to fetch documents
-    }
-
-    // Fetch documents based on the correct user ID
+    // Fetch documents based on department and the correct user ID
     const documents = await Document.find({
       department: departmentId,
-      userId: fetchUserId,
+      userId: queryUserId
     })
-      .populate("department", "name")
-      .exec();
+    .populate("department", "name")
+    .exec();
 
-   // Extract department name from the first document (all docs in same department)
-   const departmentName = documents[0]?.department?.name || null;
+    // Get department name (fallback to query if not populated)
+    let departmentName = documents[0]?.department?.name;
+    if (!departmentName) {
+      const dept = await Department.findById(departmentId);
+      departmentName = dept?.name || "";
+    }
 
-   res.status(200).json({ 
-     success: true, 
-     documents,
-     departmentName // Include in response
-   });
- } catch (error) {
+    res.status(200).json({ 
+      success: true, 
+      documents,
+      departmentName
+    });
+  } catch (error) {
     console.error("Error fetching documents:", error.message);
     res.status(500).json({
       success: false,

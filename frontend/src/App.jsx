@@ -33,6 +33,7 @@ import Meetings from "./admin/Admin_Meetings/Meeting.jsx";
 import MembersPage from "./Member/member.jsx";
 import { NotificationProvider } from './contexts/NotificationContext'; // Updated import path
 import { AuthProvider } from './AuthContext';
+import Chat from './Chat/chat';
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Departments");
@@ -86,6 +87,10 @@ function App() {
             path="/department/:department/documents/view/:id"
             element={<Modal />}
           />
+          {/* chats */}
+          <Route path="/chat/:chatId?" element={<Chat />} />
+
+
           <Route path="/view/:filename/:fileType" element={<FileViewer />} />
           <Route path="/members" element={<MembersPage />} />
           <Route path="/meeting" element={<ScheduleMeetingForm />} />

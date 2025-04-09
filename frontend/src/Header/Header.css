@@ -3,7 +3,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #222;
+  background-color: #1c2936;
   padding: 15px 30px;
   color: white;
   position: fixed;
@@ -291,6 +291,13 @@
   text-align: center;
 }
 
+
+.Message-icon-wrapper {
+  display: flex;
+  align-items: center;
+  text-decoration: none; /* Removes underline from link */
+  color: inherit; /* Keeps the icon color consistent */
+}
 
 
 
