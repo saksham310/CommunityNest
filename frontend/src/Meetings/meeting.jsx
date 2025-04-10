@@ -32,6 +32,7 @@ const ScheduleMeetingForm = () => {
   const [memberEmails, setMemberEmails] = useState([]);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userStatus, setUserStatus] = useState(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -40,7 +41,7 @@ const ScheduleMeetingForm = () => {
           "http://localhost:5001/api/meeting/check-auth",
           {
             method: "GET",
-            credentials: "include", // Ensure cookies are sent
+            credentials: "include",
           }
         );
 
@@ -48,12 +49,38 @@ const ScheduleMeetingForm = () => {
           setAuthenticated(true);
           fetchEvents();
           fetchUserEmail();
+          fetchUserStatus(); // Add this function call
         } else {
           setAuthenticated(false);
         }
       } catch (error) {
         console.error("Error checking authentication status:", error);
         setAuthenticated(false);
+      }
+    };
+
+    const fetchUserStatus = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        if (!userId) return;
+        
+        const response = await fetch(
+          `http://localhost:5001/api/auth/user/${userId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setUserStatus(userData.status);
+        }
+      } catch (error) {
+        console.error("Error fetching user status:", error);
       }
     };
 
@@ -310,25 +337,27 @@ const ScheduleMeetingForm = () => {
           ) : (
             <div className="user-actions">
               <span className="user-email">Signed in as: {email}</span>
-              <button
-                className="primary-btn"
-                onClick={async () => {
-                  setScheduleModalVisible(true);
-                  await fetchMemberEmails();
-                }}
-              >
-                <FiCalendar /> Schedule Meeting
-              </button>
+              {userStatus === 'community' && (
+                <button
+                  className="primary-btn"
+                  onClick={async () => {
+                    setScheduleModalVisible(true);
+                    await fetchMemberEmails();
+                  }}
+                >
+                  <FiCalendar /> Schedule Meeting
+                </button>
+              )}
             </div>
           )}
         </div>
-
+  
         {!authenticated && (
           <div className="auth-prompt">
-            <p>Please sign in with Google to view and schedule meetings</p>
+            <p>Please sign in with Google to view meetings</p>
           </div>
         )}
-
+  
         {authenticated && (
           <div className="meetings-section">
             {events.length > 0 ? (
@@ -345,12 +374,16 @@ const ScheduleMeetingForm = () => {
                       </button>
                       {menuVisible === event.id && (
                         <div className="card-menu">
-                          <button onClick={() => handleEdit(event.id)}>
-                            <FiEdit2 /> Edit
-                          </button>
-                          <button onClick={() => handleDelete(event.id)}>
-                            <FiTrash2 /> Delete
-                          </button>
+                          {userStatus === 'community' && (
+                            <>
+                              <button onClick={() => handleEdit(event.id)}>
+                                <FiEdit2 /> Edit
+                              </button>
+                              <button onClick={() => handleDelete(event.id)}>
+                                <FiTrash2 /> Delete
+                              </button>
+                            </>
+                          )}
                           {event.hangoutLink && (
                             <button
                               onClick={() => handleCopyLink(event.hangoutLink)}
@@ -361,11 +394,11 @@ const ScheduleMeetingForm = () => {
                         </div>
                       )}
                     </div>
-
+  
                     <div className="card-body">
-                      <p className="agenda"> Agenda: </p>
-                      <p className="description"> {event.description}</p>
-
+                      <p className="agenda">Agenda:</p>
+                      <p className="description">{event.description}</p>
+  
                       <div className="time-info">
                         <div className="time-block">
                           <FiClock className="time-icon" />
@@ -376,7 +409,7 @@ const ScheduleMeetingForm = () => {
                             </span>
                           </div>
                         </div>
-
+  
                         <div className="time-block">
                           <FiClock className="time-icon" />
                           <div>
@@ -387,7 +420,7 @@ const ScheduleMeetingForm = () => {
                           </div>
                         </div>
                       </div>
-
+  
                       {event.attendees?.length > 0 && (
                         <div className="attendees-info">
                           <FiUsers className="attendees-icon" />
@@ -398,7 +431,7 @@ const ScheduleMeetingForm = () => {
                         </div>
                       )}
                     </div>
-
+  
                     {event.hangoutLink && (
                       <a
                         href={event.hangoutLink}
@@ -416,20 +449,22 @@ const ScheduleMeetingForm = () => {
               <div className="empty-state">
                 <FiCalendar className="empty-icon" />
                 <p>No upcoming meetings scheduled</p>
-                <button
-                  className="primary-btn"
-                  onClick={async () => {
-                    setScheduleModalVisible(true);
-                    await fetchMemberEmails();
-                  }}
-                >
-                  Schedule Your First Meeting
-                </button>
+                {userStatus === 'community' && (
+                  <button
+                    className="primary-btn"
+                    onClick={async () => {
+                      setScheduleModalVisible(true);
+                      await fetchMemberEmails();
+                    }}
+                  >
+                    Schedule Your First Meeting
+                  </button>
+                )}
               </div>
             )}
           </div>
         )}
-
+  
         {/* Schedule Meeting Modal */}
         {scheduleModalVisible && (
           <div className="schedule-modal-overlay">
@@ -443,7 +478,7 @@ const ScheduleMeetingForm = () => {
                   &times;
                 </button>
               </div>
-
+  
               <form onSubmit={handleSubmit}>
                 <div className="form-group">
                   <label>Meeting Title</label>
@@ -456,7 +491,7 @@ const ScheduleMeetingForm = () => {
                     required
                   />
                 </div>
-
+  
                 <div className="form-group">
                   <label>Description</label>
                   <textarea
@@ -468,7 +503,7 @@ const ScheduleMeetingForm = () => {
                     rows="3"
                   />
                 </div>
-
+  
                 <div className="time-inputs">
                   <div className="form-group">
                     <label>Start Time</label>
@@ -480,7 +515,7 @@ const ScheduleMeetingForm = () => {
                       required
                     />
                   </div>
-
+  
                   <div className="form-group">
                     <label>End Time</label>
                     <input
@@ -492,7 +527,7 @@ const ScheduleMeetingForm = () => {
                     />
                   </div>
                 </div>
-
+  
                 <div className="form-group">
                   <label>Attendees</label>
                   <input
@@ -510,7 +545,7 @@ const ScheduleMeetingForm = () => {
                   />
                   <small className="hint">Separate emails with commas</small>
                 </div>
-
+  
                 <div className="modal-actions">
                   <button
                     type="button"
@@ -527,7 +562,7 @@ const ScheduleMeetingForm = () => {
             </div>
           </div>
         )}
-
+  
         {/* Edit Meeting Modal */}
         {editModalVisible && (
           <div className="edit-modal-overlay">
@@ -541,7 +576,7 @@ const ScheduleMeetingForm = () => {
                   &times;
                 </button>
               </div>
-
+  
               <form onSubmit={handleEditSubmit}>
                 <div className="form-group">
                   <label>Meeting Title</label>
@@ -554,7 +589,7 @@ const ScheduleMeetingForm = () => {
                     required
                   />
                 </div>
-
+  
                 <div className="form-group">
                   <label>Description</label>
                   <textarea
@@ -566,7 +601,7 @@ const ScheduleMeetingForm = () => {
                     rows="3"
                   />
                 </div>
-
+  
                 <div className="time-inputs">
                   <div className="form-group">
                     <label>Start Time</label>
@@ -578,7 +613,7 @@ const ScheduleMeetingForm = () => {
                       required
                     />
                   </div>
-
+  
                   <div className="form-group">
                     <label>End Time</label>
                     <input
@@ -590,7 +625,7 @@ const ScheduleMeetingForm = () => {
                     />
                   </div>
                 </div>
-
+  
                 <div className="form-group">
                   <label>Attendees</label>
                   <input
@@ -603,7 +638,7 @@ const ScheduleMeetingForm = () => {
                   />
                   <small className="hint">Separate emails with commas</small>
                 </div>
-
+  
                 <div className="modal-actions">
                   <button
                     type="button"

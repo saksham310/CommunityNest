@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './login.css';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { AuthContext } from '../AuthContext'; // Import the AuthContext
+import { AuthContext } from '../AuthContext';
+import { FiEye, FiEyeOff } from 'react-icons/fi'; // Import eye icons
 
 const SITE_KEY = '6LdS7qIqAAAAABLLeQHDUNylcYpE4rNn1bvdgS0i';
 
@@ -12,9 +13,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
   const navigate = useNavigate();
-  const { setShouldCheckGoogleAuth } = useContext(AuthContext); // Get the context function
-
+  const { setShouldCheckGoogleAuth } = useContext(AuthContext);
   const [recaptchaToken, setRecaptchaToken] = useState('');
 
   const onChange = (value) => {
@@ -93,7 +94,12 @@ const Login = () => {
     navigate('/forgot-password');
   };
 
-  return (
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+ return (
     <div className="Login">
       <h2>Login</h2>
       <form onSubmit={handleSubmit}>
@@ -104,14 +110,23 @@ const Login = () => {
           placeholder="Enter email"
           required
         />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter password"
-          required
-        />
-        {error && <p className="Error">{error}</p>} {/* Display error if present */}
+        <div className="password-input-container">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter password"
+            required
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <FiEyeOff /> : <FiEye />}
+          </button>
+        </div>
+        {error && <p className="Error">{error}</p>}
 
         <div className="recaptcha">
           <ReCAPTCHA sitekey={SITE_KEY} onChange={onChange} />
@@ -137,6 +152,7 @@ const Login = () => {
       </div>
     </div>
   );
+
 };
 
 export default Login;

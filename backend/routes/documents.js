@@ -5,7 +5,8 @@ const router = express.Router();
 const Document = require("../models/Document");
 const Department = require("../models/Department"); // Assuming you have this model
 const User = require("../models/User"); // Assuming you have a User model
-
+const Notification = require('../models/Notification');
+const Community = require('../models/Community');
 
 // Create a new document
 router.post("/createDocument", async (req, res) => {
@@ -19,8 +20,8 @@ router.post("/createDocument", async (req, res) => {
       });
     }
 
-    // Ensure the department exists
-    const departmentData = await Department.findById(department).exec();
+    // Validate department exists
+    const departmentData = await Department.findById(department);
     if (!departmentData) {
       return res.status(404).json({
         success: false,
@@ -28,8 +29,8 @@ router.post("/createDocument", async (req, res) => {
       });
     }
 
-    // Ensure the user exists
-    const user = await User.findById(userId).exec();
+    // Validate user exists
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -37,21 +38,21 @@ router.post("/createDocument", async (req, res) => {
       });
     }
 
-    // Create and save the new document
+    // Create new document
     const newDocument = new Document({
       title,
       content,
       userId,
-      department: departmentData._id, // Store department ID
+      department,
     });
 
     await newDocument.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Document created successfully!",
-      newDocument,
-    });
+     // Send notifications
+     const io = req.app.get('io');
+     await sendDocumentNotifications(io, newDocument, userId);
+ 
+     res.status(201).json({ success: true, document: newDocument });
   } catch (error) {
     console.error("Error creating document:", error);
     res.status(500).json({
@@ -63,7 +64,6 @@ router.post("/createDocument", async (req, res) => {
 });
 
 
-// Get documents by department and user (handles community & member status)
 // Get documents by department and user (handles community & member status)
 router.get("/getDocumentsByDepartmentAndUser/:departmentId/:userId", async (req, res) => {
   try {
@@ -174,54 +174,54 @@ router.put("/editDocument", async (req, res) => {
   try {
     const { id, title, content, department, userId } = req.body;
 
-    // Check if all required fields exist
     if (!id || !title || !content || !department || !userId) {
       return res.status(400).json({
         success: false,
-        message: "All fields (id, title, content, department, userId) are required",
+        message: "All fields are required",
       });
     }
 
-    // Validate if department exists
-    const departmentData = await Department.findById(department).exec();
-    if (!departmentData) {
-      return res.status(404).json({ success: false, message: "Department not found" });
-    }
-
-    // Validate if user exists
-    const user = await User.findById(userId).exec();
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    // Validate permissions
-    if (user.status !== "community" && user.status !== "member") {
-      return res.status(403).json({ success: false, message: "You do not have permission to edit this document." });
-    }
-
-    // Find the existing document
+    // Validate document exists
     const document = await Document.findById(id);
     if (!document) {
-      return res.status(404).json({ success: false, message: "Document not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
     }
 
-    // Update the document fields
+    // Check if user has permission to edit
+    if (document.userId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to edit this document",
+      });
+    }
+
+    // Update document
     document.title = title;
     document.content = content;
-    document.department = departmentData._id;
-    document.lastEditedBy = userId; // Ensure last editor is updated
+    document.department = department;
+    document.updatedAt = new Date();
 
     await document.save();
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Document updated successfully!", 
-      document 
-    });
+    // Send update notifications
+    const io = req.app.get('io');
+    await sendDocumentNotifications(io, document, userId, 'updated');
 
+    res.status(200).json({
+      success: true,
+      message: "Document updated successfully!",
+      document,
+    });
   } catch (error) {
     console.error("Error updating document:", error);
-    res.status(500).json({ success: false, message: "Error updating document", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error updating document",
+      error: error.message,
+    });
   }
 });
 
@@ -267,6 +267,70 @@ router.get("/getDocumentById/:id", async (req, res) => {
   }
 });
 
+const sendDocumentNotifications = async (io, document, userId) => {
+  try {
+    // Get the user who triggered the action
+    const sender = await User.findById(userId).populate('communityDetails.communityId');
+    if (!sender) return;
+
+    let community;
+    let membersToNotify = [];
+
+    if (sender.status === "member") {
+      // For members - get their first community
+      if (sender.communityDetails.length > 0) {
+        const communityId = sender.communityDetails[0].communityId;
+        community = await Community.findOne({ _id: communityId })
+          .populate('members', '_id');
+        
+        if (community) {
+          // Notify all members except the sender
+          membersToNotify = community.members
+            .filter(member => member._id.toString() !== userId.toString())
+            .map(member => member._id.toString());
+        }
+      }
+    } else if (sender.status === "community") {
+      // For admins - get their managed community
+      community = await Community.findOne({ admin: userId })
+        .populate('members', '_id');
+      
+      if (community) {
+        // Notify all members
+        membersToNotify = community.members
+          .map(member => member._id.toString());
+      }
+    }
+
+    if (membersToNotify.length === 0) return;
+
+    // Create and send notifications
+    await Promise.all(membersToNotify.map(async memberId => {
+      const notification = new Notification({
+        recipient: memberId,
+        sender: userId,
+        message: `New document: ${document.title}`,
+        type: 'document',
+        relatedEntity: document._id
+      });
+      
+      await notification.save();
+      
+      // Emit socket notification
+      io.to(`user_${memberId}`).emit('new-notification', {
+        ...notification.toObject(),
+        sender: {
+          _id: sender._id,
+          username: sender.username
+        }
+      });
+    }));
+
+    console.log(`Sent notifications to ${membersToNotify.length} users`);
+  } catch (error) {
+    console.error('Notification error:', error);
+  }
+};
 
 module.exports = router;
 

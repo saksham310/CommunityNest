@@ -36,6 +36,8 @@ const Header = () => {
     isConnected,
   } = useNotifications();
 
+ 
+
   const [user, setUser] = useState({
     username: localStorage.getItem("username") || "Guest",
     email: localStorage.getItem("email") || "Not Available",
@@ -377,9 +379,9 @@ const Header = () => {
                 </button>
               )}
 
-              <Link to="/profile" className="Profile-dropdown-item">
+              {/* <Link to="/profile" className="Profile-dropdown-item">
                 View Profile
-              </Link>
+              </Link> */}
               <button
                 className="Profile-dropdown-item logout"
                 onClick={handleLogout}

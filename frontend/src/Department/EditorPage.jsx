@@ -74,32 +74,58 @@ const EditorPage = () => {
   };
 
   const saveDocument = () => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("You must be logged in to save documents");
+      return;
+    }
+  
     if (!documentTitle.trim()) {
       setError("Document title cannot be empty!");
       return;
     }
-
-    const userId = localStorage.getItem("userId");
+  
     const payload = {
       title: documentTitle,
       content: editorContentRef.current,
       department,
       userId,
-      ...(isEditing && { id }),
+      ...(isEditing && { id }), // Only include id if editing
     };
-
+  
+    const endpoint = isEditing 
+      ? `${backendUrl}/editDocument`
+      : `${backendUrl}/createDocument`;
+  
+    const method = isEditing ? "put" : "post";
+  
     setLoading(true);
     setError("");
-
-    axios
-      .put(`${backendUrl}/editDocument`, payload)
+  
+    axios[method](endpoint, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((res) => {
         if (res.data.success) {
-          navigate(`/department/${department}/documents`);
+          navigate(`/department/${department}/documents`, {
+            state: { departmentName },
+          });
+        } else {
+          setError(res.data.message || "Failed to save document");
         }
       })
       .catch((err) => {
-        setError(err.response?.data?.message || "Failed to save document");
+        console.error("Save error:", err.response?.data);
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to save document"
+        );
       })
       .finally(() => {
         setLoading(false);

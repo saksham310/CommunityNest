@@ -1,85 +1,154 @@
-/* General styling for the login form */
+/* login.css */
+
 .Login {
-  padding: 20px;
-  max-width: 400px;
-  margin: 50px auto;
-  background: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  max-width: 420px;
+  width: 100%;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.Login input,
-.Login button {
+.Login h2 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-size: 24px;
+  /* font-weight: 600; */
+}
+
+.Login form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 4px;
+}
+
+/* Common width for all form elements */
+.Login input,
+.password-input-container,
+.recaptcha,
+.Login-btn,
+.Forgot-password {
+  width: 100%;
   box-sizing: border-box;
 }
 
 .Login input {
-  border: 1px solid #ccc;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
 }
 
-/* Forgot Password Button */
-.Forgot-password {
-  display: block;
+.Login input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+}
+
+.password-input-container input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
-  color: #4CAF50;
-  text-decoration: underline;
   cursor: pointer;
-  font-size: 14px;
+  color: #7f8c8d;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: #2c3e50;
+}
+
+.Login-btn {
+  padding: 0.8rem;
+  background-color: #1e5980;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.Login-btn:hover:not(:disabled) {
+  background-color:  #163d58;
+}
+
+.Login-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.Forgot-password {
+  background: none;
+  border: none;
+  color: #7f8c8d;
   text-align: right;
-  margin-top: -5px;
-  margin-bottom: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
 }
 
 .Forgot-password:hover {
-  color: #388e3c; /* Slightly darker green for hover effect */
-  background-color: #ffffff;
+  color: #3498db;
+  text-decoration: underline;
 }
 
-/* Login Button */
-.Login-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  font-size: 16px;
-  font-weight: bold;
-  padding: 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 10px;
-  transition: background-color 0.3s;
-}
-
-.Login-btn:hover {
-  background-color: #45a049;
-}
-
-/* Error message styling */
-.Error {
-  color: red;
-  font-size: 14px;
-  margin: 5px 0;
-}
-
-/* Signup link styling */
 .Signup-link {
   text-align: center;
-}
-
-.Signup-link p {
-  margin: 10px 0 0;
+  margin-top: 1.5rem;
+  color: #7f8c8d;
+  font-size: 0.95rem;
 }
 
 .Signup-link a {
-  color: #4CAF50;
+  color: #3498db;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .Signup-link a:hover {
   text-decoration: underline;
+}
+
+.Error {
+  color: #e74c3c;
+  margin: -0.5rem 0 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.recaptcha > div {
+  width: 100% !important;
+  display: flex;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .Login {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
 }

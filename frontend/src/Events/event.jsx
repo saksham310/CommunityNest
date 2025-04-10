@@ -215,25 +215,32 @@ const Events = () => {
   // Function to toggle event status
   const toggleEventStatus = async (eventId, currentStatus) => {
     const newStatus = currentStatus === "Private" ? "Announcement" : "Private";
-
+  
     try {
       const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5001/api/events/${eventId}`,
-        { status: newStatus },
+      const response = await axios.put(
+        `http://localhost:5001/api/events/${eventId}/status`,
+        {}, // No body needed since we're using a dedicated endpoint
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-
-      // Update the local state without refetching all events
-      setEvents(
-        events.map((event) =>
-          event._id === eventId ? { ...event, status: newStatus } : event
-        )
-      );
+  
+      if (response.data.success) {
+        // Update the local state without refetching all events
+        setEvents(
+          events.map((event) =>
+            event._id === eventId ? { ...event, status: newStatus } : event
+          )
+        );
+        
+        if (newStatus === "Announcement") {
+          alert("Event published as announcement! All members will be notified.");
+        }
+      }
     } catch (error) {
       console.error("Error updating event status:", error);
+      alert("Failed to update event status. Please try again.");
     }
   };
 

@@ -65,89 +65,34 @@ const Dashboard = () => {
         return;
       }
   
-      // Debug: Log what we're about to send
-      console.log("Saving notice:", {
-        currentNotice: currentNotice?._id,
-        noticeContent,
-        isUpdate: !!currentNotice
-      });
-  
       const response = currentNotice
         ? await axios.put(
             `http://localhost:5001/api/notice/${currentNotice._id}`,
             { content: noticeContent },
-            { 
-              headers: { Authorization: `Bearer ${token}` },
-              validateStatus: () => true // Ensure we get the response even on error
-            }
+            { headers: { Authorization: `Bearer ${token}` } }
           )
         : await axios.post(
             "http://localhost:5001/api/notice",
             { content: noticeContent },
-            { 
-              headers: { Authorization: `Bearer ${token}` },
-              validateStatus: () => true
-            }
+            { headers: { Authorization: `Bearer ${token}` } }
           );
   
-      // Debug: Log the full response
-      console.log("API Response:", response);
-  
-      // Check for success (some APIs use different success indicators)
-      if (response.status >= 200 && response.status < 300) {
-        // Some APIs return data directly, others wrap in 'data' property
-        const success = response.data?.success ?? true;
-        const message = response.data?.message;
-  
-        if (!success) {
-          alert(message || "Notice saved but server returned unsuccessful status");
-          return;
-        }
-  
-        // Refresh data
-        try {
-          const [noticesRes] = await Promise.all([
-            axios.get("http://localhost:5001/api/notice", {
-              headers: { Authorization: `Bearer ${token}` }
-            }),
-            fetchNotifications()
-          ]);
-          
-          setNotices(noticesRes.data.notices || noticesRes.data);
-          setModalIsOpen(false);
-          setNoticeContent("");
-          
-          alert(message || "Notice saved successfully!");
-        } catch (refreshError) {
-          console.error("Error refreshing data:", refreshError);
-          alert("Notice saved but couldn't refresh data. Please reload the page.");
-        }
-      } else {
-        // Handle HTTP error statuses
-        const errorMessage = response.data?.message || 
-                           response.data?.error || 
-                           `Server returned status ${response.status}`;
-        alert(`Error: ${errorMessage}`);
-      }
+      // Refresh notices and notifications
+      const [noticesRes] = await Promise.all([
+        axios.get("http://localhost:5001/api/notice", {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetchNotifications() // This will update your notification context
+      ]);
+      
+      setNotices(noticesRes.data.notices);
+      setModalIsOpen(false);
+      setNoticeContent("");
+      
+      alert(currentNotice ? "Notice updated successfully!" : "Notice published successfully!");
     } catch (error) {
-      console.error("Full error saving notice:", error);
-      
-      // More detailed error message
-      let errorMessage = "An error occurred while saving the notice";
-      if (error.response) {
-        // Server responded with error status
-        errorMessage = error.response.data?.message || 
-                      error.response.data?.error ||
-                      `Server error (${error.response.status})`;
-      } else if (error.request) {
-        // Request was made but no response
-        errorMessage = "No response from server. Check your connection.";
-      } else {
-        // Something else happened
-        errorMessage = error.message || "Unknown error occurred";
-      }
-      
-      alert(errorMessage);
+      console.error("Error saving notice:", error);
+      alert(error.response?.data?.message || "Failed to save notice");
     }
   };
 
@@ -373,11 +318,13 @@ const Dashboard = () => {
           rows={5}
         />
         <div className="modal-buttons">
-          <button onClick={closeModal} className="cancel-button">
-            Cancel
-          </button>
-          <button onClick={handleSaveNotice} className="publish-button">
+          
+          <button onClick={handleSaveNotice} className="publish-button"styles={{ color: "red" }}>
             {currentNotice ? "Update Notice" : "Publish Notice"}
+          </button>
+          <button onClick={closeModal} className="cancel-button1"
+          >
+            Cancel
           </button>
         </div>
       </Modal>

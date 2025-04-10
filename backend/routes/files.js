@@ -42,25 +42,42 @@ const upload = multer({
 // Route to upload file (only PDF allowed)
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    console.log("Request body:", req.body); // Debugging
-    console.log("Uploaded file:", req.file); // Debugging
+    console.log("Request body:", req.body);
+    console.log("Uploaded file:", req.file);
 
     // Ensure required fields are present
     if (!req.body.filename || !req.body.fileType || !req.body.department || !req.body.userId) {
       return res.status(400).json({ error: "filename, fileType, department, and userId are required." });
     }
 
-    const newFile = new File({
-      filename: req.body.filename,
-      filePath: req.file.filename, // Just store the filename
+    // Get the user to check their status
+    const user = await User.findById(req.body.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-      fileType: req.body.fileType,
+    // Determine the owner ID - use admin ID for members
+    let ownerId = req.body.userId;
+    if (user.status === "member" && user.communityDetails.length > 0) {
+      ownerId = user.communityDetails[0].adminId;
+    }
+
+    const newFile = new File({
+      filename: req.file.originalname,
+      filePath: req.file.path,
+      fileType: req.file.mimetype,
       department: req.body.department,
-      userId: req.body.userId,
+      userId: ownerId,  // Use the determined owner ID
+      uploadedBy: req.body.userId  // Track who actually uploaded the file
     });
 
     await newFile.save();
-    res.json({ message: "File uploaded successfully!", file: newFile });
+
+   // Send notifications
+   const io = req.app.get('io');
+   await sendFileNotifications(io, newFile, req.body.userId);
+   
+   res.status(201).json({ success: true, file: newFile });
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ error: "File upload failed" });
@@ -80,17 +97,22 @@ router.get("/getFilesByDepartmentAndUser/:department/:userId", async (req, res) 
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // If the user is a member, update the userId to the adminId from communityDetails
+    let files;
+    
+    // If the user is a member, we want files owned by their admin OR uploaded by them
     if (user.status === "member" && user.communityDetails.length > 0) {
       const adminId = user.communityDetails[0].adminId;
-      userId = adminId;  // Update userId to adminId
-    }
-
-    // Now fetch the files based on the department and updated userId
-    const files = await File.find({ department, userId });
-
-    if (files.length === 0) {
-      return res.status(200).json({ success: true, message: "No files found", files: [] });
+      files = await File.find({
+        department,
+        $or: [
+          { userId: adminId },  // Files owned by admin
+          { uploadedBy: userId } // Files uploaded by this member
+        ]
+      }).populate('uploadedBy', 'username'); // Populate the uploader's username
+    } else {
+      // For community users, just get their files
+      files = await File.find({ department, userId })
+        .populate('uploadedBy', 'username');
     }
 
     res.status(200).json({ success: true, files });
@@ -165,5 +187,61 @@ router.post('/extract-text-pdf', upload.single('file'), (req, res) => {
       });
   });
 });
+
+const sendFileNotifications = async (io, file, userId) => {
+  try {
+    const sender = await User.findById(userId).populate('communityDetails.communityId');
+    if (!sender) return;
+
+    let community;
+    let membersToNotify = [];
+
+    if (sender.status === "member") {
+      if (sender.communityDetails.length > 0) {
+        const communityId = sender.communityDetails[0].communityId;
+        community = await Community.findOne({ _id: communityId })
+          .populate('members', '_id');
+        
+        if (community) {
+          membersToNotify = community.members
+            .filter(member => member._id.toString() !== userId.toString())
+            .map(member => member._id.toString());
+        }
+      }
+    } else if (sender.status === "community") {
+      community = await Community.findOne({ admin: userId })
+        .populate('members', '_id');
+      
+      if (community) {
+        membersToNotify = community.members
+          .map(member => member._id.toString());
+      }
+    }
+
+    if (membersToNotify.length === 0) return;
+
+    await Promise.all(membersToNotify.map(async memberId => {
+      const notification = new Notification({
+        recipient: memberId,
+        sender: userId,
+        message: `New file uploaded: ${file.filename}`,
+        type: 'file',
+        relatedEntity: file._id
+      });
+      
+      await notification.save();
+      io.to(`user_${memberId}`).emit('new-notification', {
+        ...notification.toObject(),
+        sender: {
+          _id: sender._id,
+          username: sender.username
+        }
+      });
+    }));
+
+  } catch (error) {
+    console.error('File notification error:', error);
+  }
+};
 
 module.exports = router;

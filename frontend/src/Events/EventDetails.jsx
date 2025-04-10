@@ -42,6 +42,8 @@ const EventDetails = () => {
   const [email, setEmail] = useState(null);
 
   const [deletingRow, setDeletingRow] = useState(null);
+   const [ setUserStatus] = useState(null);
+   const userStatus = localStorage.getItem('status') || null;
   useEffect(() => {
     // Initialize editableEmails with the emails of attendees marked as "Present"
     const presentEmails = getPresentAttendees()
@@ -50,6 +52,8 @@ const EventDetails = () => {
     setEditableEmails(presentEmails);
   }, [activeSheetUrl, attendees]); // Re-run when activeSheetUrl or attendees change
 
+  
+  
   useEffect(() => {
     const fetchAuthDetails = async () => {
       try {
@@ -76,6 +80,7 @@ const EventDetails = () => {
 
     fetchAuthDetails();
   }, []);
+
 
   useEffect(() => {
     const fetchEventTitle = async () => {
@@ -512,12 +517,14 @@ const EventDetails = () => {
         >
           <FaFolder /> Attendees
         </button>
-        <button
-          className={`tab-btn ${activeTab === "feedback" ? "active" : ""}`}
-          onClick={() => setActiveTab("feedback")}
-        >
-          <FaEnvelope /> Feedback
-        </button>
+        {userStatus !== "member" && ( 
+          <button
+            className={`tab-btn ${activeTab === "feedback" ? "active" : ""}`}
+            onClick={() => setActiveTab("feedback")}
+          >
+            <FaEnvelope /> Feedback
+          </button>
+        )}
       </nav>
 
       <div className="event-content">
@@ -669,13 +676,12 @@ const EventDetails = () => {
                         </tr>
                       ))}
                     </tbody>
-                   
                   </table>
                   <div className="add-attendee-footer">
-                      <button className="btn-secondary" onClick={handleAddRow}>
-                        <FaPlus /> Add Attendee
-                      </button>
-                    </div>
+                    <button className="btn-secondary" onClick={handleAddRow}>
+                      <FaPlus /> Add Attendee
+                    </button>
+                  </div>
                 </div>
               )}
 

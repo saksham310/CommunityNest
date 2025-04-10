@@ -6,6 +6,7 @@ const session = require('express-session');
 const { v4: uuid } = require('uuid');
 const User = require("../models/User"); // Assuming you have a User model
 const Community = require("../models/Community"); // Assuming you have a Community model
+const Notification = require('../models/Notification');
 
 dotenv.config();
 
@@ -255,21 +256,58 @@ router.get("/user/auth-details", ensureAuthenticated, (req, res) => {
     }
   });
 
+// router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
+//     try {
+//         const { summary, description, start, end, attendees } = req.body;
+
+//         console.log("Request body:", { summary, description, start, end, attendees });
+
+//         // Validate input fields
+//         if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
+//             console.error("Validation failed: Missing required fields");
+//             return res.status(400).json({ error: "All fields are required and attendees should be an array" });
+//         }
+
+//         console.log("Scheduling event with data:", { summary, description, start, end, attendees });
+
+//         // Create the event using Google Calendar API
+//         const event = await calendar.events.insert({
+//             calendarId: 'primary',
+//             auth: oauth2Client,
+//             conferenceDataVersion: 1,
+//             requestBody: {
+//                 summary,
+//                 description,
+//                 start: { dateTime: new Date(start).toISOString(), timeZone: 'Asia/Kathmandu' },
+//                 end: { dateTime: new Date(end).toISOString(), timeZone: 'Asia/Kathmandu' },
+//                 attendees: attendees.map(email => ({ email })),
+//                 conferenceData: {
+//                     createRequest: {
+//                         requestId: uuid(),
+//                         conferenceSolutionKey: { type: 'hangoutsMeet' },
+//                     },
+//                 },
+//             },
+//         });
+
+//         console.log("Event scheduled successfully:", event.data);
+//         res.json({ msg: 'Event scheduled successfully', eventLink: event.data.hangoutLink });
+//     } catch (error) {
+//         console.error('Error scheduling event:', error);
+//         res.status(500).json({ error: 'Failed to schedule event', details: error.toString() });
+//     }
+// });
+
 router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
     try {
         const { summary, description, start, end, attendees } = req.body;
 
-        console.log("Request body:", { summary, description, start, end, attendees });
-
-        // Validate input fields
+        // Validate input
         if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
-            console.error("Validation failed: Missing required fields");
             return res.status(400).json({ error: "All fields are required and attendees should be an array" });
         }
 
-        console.log("Scheduling event with data:", { summary, description, start, end, attendees });
-
-        // Create the event using Google Calendar API
+        // Schedule the meeting
         const event = await calendar.events.insert({
             calendarId: 'primary',
             auth: oauth2Client,
@@ -289,11 +327,20 @@ router.post('/schedule_meeting', ensureAuthenticated, async (req, res) => {
             },
         });
 
-        console.log("Event scheduled successfully:", event.data);
-        res.json({ msg: 'Event scheduled successfully', eventLink: event.data.hangoutLink });
+        // Send notifications to attendees
+        const io = req.app.get('io');
+        await sendMeetingNotifications(io, event.data, req.userId, attendees);
+
+        res.json({ 
+            msg: 'Event scheduled successfully', 
+            eventLink: event.data.hangoutLink 
+        });
     } catch (error) {
         console.error('Error scheduling event:', error);
-        res.status(500).json({ error: 'Failed to schedule event', details: error.toString() });
+        res.status(500).json({ 
+            error: 'Failed to schedule event', 
+            details: error.toString() 
+        });
     }
 });
 
@@ -318,45 +365,80 @@ router.get('/events', ensureAuthenticated, async (req, res) => {
 });
 
 
+// router.put('/edit_meeting/:eventId', ensureAuthenticated, async (req, res) => {
+//     const { eventId } = req.params;
+//     const { summary, description, start, end, attendees } = req.body;
+
+//     console.log("Request body:", { summary, description, start, end, attendees });
+
+//     // Validate input fields
+//     if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
+//         console.error("Validation failed: Missing required fields or attendees is not an array");
+//         return res.status(400).json({ error: "All fields are required and attendees should be an array" });
+//     }
+
+//     console.log("Editing event with data:", { summary, description, start, end, attendees });
+
+//     try {
+//         // Prepare the event data for Google Calendar
+//         const event = await calendar.events.update({
+//             calendarId: 'primary',
+//             eventId,
+//             requestBody: {
+//                 summary,
+//                 description,
+//                 start: { 
+//                     dateTime: new Date(start).toISOString(), 
+//                     timeZone: 'Asia/Kathmandu' 
+//                 },
+//                 end: { 
+//                     dateTime: new Date(end).toISOString(), 
+//                     timeZone: 'Asia/Kathmandu' 
+//                 },
+//                 attendees: attendees.map((email) => ({ email })),
+//             },
+//         });
+
+//         console.log("Event updated successfully:", event.data);
+//         res.json({ msg: 'Event updated successfully', eventLink: event.data.hangoutLink });
+//     } catch (error) {
+//         console.error('Error updating event:', error);
+//         res.status(500).json({ error: 'Failed to update event', details: error.toString() });
+//     }
+// });
+
 router.put('/edit_meeting/:eventId', ensureAuthenticated, async (req, res) => {
     const { eventId } = req.params;
     const { summary, description, start, end, attendees } = req.body;
 
-    console.log("Request body:", { summary, description, start, end, attendees });
-
-    // Validate input fields
-    if (!summary || !description || !start || !end || !attendees || !Array.isArray(attendees)) {
-        console.error("Validation failed: Missing required fields or attendees is not an array");
-        return res.status(400).json({ error: "All fields are required and attendees should be an array" });
-    }
-
-    console.log("Editing event with data:", { summary, description, start, end, attendees });
-
     try {
-        // Prepare the event data for Google Calendar
+        // Update the meeting
         const event = await calendar.events.update({
             calendarId: 'primary',
             eventId,
             requestBody: {
                 summary,
                 description,
-                start: { 
-                    dateTime: new Date(start).toISOString(), 
-                    timeZone: 'Asia/Kathmandu' 
-                },
-                end: { 
-                    dateTime: new Date(end).toISOString(), 
-                    timeZone: 'Asia/Kathmandu' 
-                },
-                attendees: attendees.map((email) => ({ email })),
+                start: { dateTime: new Date(start).toISOString(), timeZone: 'Asia/Kathmandu' },
+                end: { dateTime: new Date(end).toISOString(), timeZone: 'Asia/Kathmandu' },
+                attendees: attendees.map(email => ({ email })),
             },
         });
 
-        console.log("Event updated successfully:", event.data);
-        res.json({ msg: 'Event updated successfully', eventLink: event.data.hangoutLink });
+        // Send notifications to attendees about the update
+        const io = req.app.get('io');
+        await sendMeetingNotifications(io, event.data, req.userId, attendees, true);
+
+        res.json({ 
+            msg: 'Event updated successfully', 
+            eventLink: event.data.hangoutLink 
+        });
     } catch (error) {
         console.error('Error updating event:', error);
-        res.status(500).json({ error: 'Failed to update event', details: error.toString() });
+        res.status(500).json({ 
+            error: 'Failed to update event', 
+            details: error.toString() 
+        });
     }
 });
  
@@ -427,5 +509,50 @@ router.get("/community/members", async (req, res) => {
 // });
 // New endpoint to fetch token and email from cookies
 
-
+// Notification utility for meetings
+const sendMeetingNotifications = async (io, meeting, userId, attendees, isUpdate = false) => {
+    try {
+      const sender = await User.findById(userId, 'username name');
+      const attendeesToNotify = attendees.filter(email => email !== sender.email);
+      
+      if (attendeesToNotify.length === 0) return;
+  
+      const notifications = await Promise.all(attendeesToNotify.map(async attendeeEmail => {
+        const attendeeUser = await User.findOne({ email: attendeeEmail });
+        if (!attendeeUser) return null;
+  
+        const message = isUpdate 
+          ? `Meeting updated: ${meeting.summary} on ${new Date(meeting.start.dateTime).toLocaleDateString()} at ${new Date(meeting.start.dateTime).toLocaleTimeString()}`
+          : `New meeting scheduled: ${meeting.summary} on ${new Date(meeting.start.dateTime).toLocaleDateString()} at ${new Date(meeting.start.dateTime).toLocaleTimeString()}`;
+  
+        const notification = new Notification({
+          recipient: attendeeUser._id,
+          sender: userId,
+          message,
+          type: 'meeting',
+          relatedEntity: meeting.id
+        });
+        
+        await notification.save();
+        
+        const notificationData = {
+          ...notification.toObject(),
+          sender: {
+            _id: sender._id,
+            username: sender.username,
+            name: sender.name
+          },
+          createdAt: notification.createdAt.toISOString()
+        };
+        
+        io.to(`user_${attendeeUser._id}`).emit('new-notification', notificationData);
+        
+        return notification;
+      }));
+  
+      console.log(`Sent ${notifications.filter(n => n !== null).length} meeting notifications`);
+    } catch (error) {
+      console.error('Meeting notification error:', error);
+    }
+  };
 module.exports = router;

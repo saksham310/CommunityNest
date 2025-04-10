@@ -208,7 +208,7 @@
   align-items: center;
   gap: 5px;
   padding: 8px 12px;
-  background-color: #4CAF50;
+  background-color: #1e5980;
   color: white;
   border: none;
   border-radius: 6px;
@@ -219,7 +219,7 @@
 }
 
 .add-notice-button:hover {
-  background-color: #45a049;
+  background-color: #163d58;
 }
 
 /* Events Section */
@@ -449,16 +449,11 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 15px;
+
 }
 
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f1f1f1;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #2c3e50;
-  transition: background-color 0.3s;
+.cancel-button1 {
+
 }
 
 .cancel-button:hover {
@@ -468,7 +463,7 @@
 .publish-button {
   padding-left: 20px;
   padding-right: 20px;
-  background-color: #4CAF50;
+  background-color: #1c2936;
   color: white;
   border: none;
   border-radius: 6px;
@@ -477,7 +472,7 @@
 }
 
 .publish-button:hover {
-  background-color: #45a049;
+  background-color: #1c2936;
 }
 
 /* Responsive Design */
@@ -556,6 +551,7 @@
   .publish-button {
     width: 100%;
   }
+  
   
   .events-grid {
     grid-template-columns: 1fr;

@@ -77,18 +77,18 @@ router.get("/user/:id", async (req, res) => {
   }
 });
 
-// Get user by Email
-router.get("/user/email/:email", async (req, res) => {
-  try {
-    const user = await User.findOne({ email: req.params.email }).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "User not found!" });
-    }
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-});
+// // Get user by Email
+// router.get("/user/email/:email", async (req, res) => {
+//   try {
+//     const user = await User.findOne({ email: req.params.email }).select("-password");
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found!" });
+//     }
+//     res.status(200).json(user);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
 
 
 router.get("/data", authenticate, async (req, res) => {
@@ -151,8 +151,8 @@ res.status(200).json({
   token,
   username: user.username,
   email: user.email,
-  profileImage: user.profileImage || null, // Ensure this is included
-  status: user.status, // Add this line
+  profileImage: user.profileImage || null, 
+  status: user.status, 
   communities: user.communities,
 });
     
@@ -419,4 +419,15 @@ router.get('/users', authenticate, async (req, res) => {
   }
 });
 
+router.get("/user/:id", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("status username email");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
 module.exports = router;

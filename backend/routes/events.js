@@ -9,6 +9,8 @@ const nodemailer = require("nodemailer");
 const router = express.Router();
 const ensureAuthenticated = require("./meeting.js");
 const { OAuth2Client } = require("google-auth-library");
+const Notification = require('../models/Notification');
+const Community = require('../models/Community');
 
 dotenv.config();
 
@@ -47,7 +49,7 @@ router.post("/", authenticate, upload.single("image"), async (req, res) => {
 
         const newEvent = new Event({
           title,
-          description: description || "", // Add this line
+          description: description || "", 
           date,
           time,
           image: result.secure_url,
@@ -336,71 +338,96 @@ router.post('/google-sheets/add-row', async (req, res) => {
   }
 });
 
-// // Add this to your routes/events.js
-// router.delete('/google-sheets/delete-row', async (req, res) => {
-//   try {
-//     const { sheetUrl, rowIndex } = req.body;
+// Notification sending function for events
+const sendEventNotifications = async (io, event, userId, communityId) => {
+  try {
+    const community = await Community.findById(communityId)
+      .populate('members', '_id');
     
-//     // You'll need to implement this function based on your Google Sheets API setup
-//     await deleteRowFromSheet(sheetUrl, rowIndex);
+    if (!community) return;
+
+    const sender = await User.findById(userId, 'username name');
+    const membersToNotify = community.members
+      .filter(member => member._id.toString() !== userId.toString())
+      .map(member => member._id.toString());
+
+    if (membersToNotify.length === 0) return;
+
+    const notifications = await Promise.all(membersToNotify.map(async memberId => {
+      const notification = new Notification({
+        recipient: memberId,
+        sender: userId,
+        message: `New event announcement: ${event.title} is happening on ${event.date}`,
+        type: 'event',
+        relatedEntity: event._id
+      });
+      await notification.save();
+      
+      const notificationData = {
+        ...notification.toObject(),
+        sender: {
+          _id: sender._id,
+          username: sender.username,
+          name: sender.name
+        },
+        createdAt: notification.createdAt.toISOString()
+      };
+      
+      io.to(`user_${memberId}`).emit('new-notification', notificationData);
+      
+      return notification;
+    }));
+
+    console.log(`Sent ${notifications.length} event notifications`);
+  } catch (error) {
+    console.error('Event notification error:', error);
+  }
+};
+
+// Update event status (toggle between Private and Announcement)
+router.put("/:id/status", authenticate, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
     
-//     res.json({ success: true });
-//   } catch (error) {
-//     console.error('Error deleting row:', error);
-//     res.status(500).json({ success: false, message: 'Failed to delete row' });
-//   }
-// });
-// Add this to your googleSheetsRoutes.js
+    if (!event) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Event not found" 
+      });
+    }
 
-// router.delete("/google-sheets/delete-row", async (req, res) => {
-//   const { sheetUrl, rowIndex } = req.body;
+    // Check if user is authorized (event creator or community admin)
+    if (event.createdBy.toString() !== req.userId) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Unauthorized to update this event" 
+      });
+    }
 
-//   // Validate input
-//   if (!sheetUrl || rowIndex === undefined || rowIndex < 1) {
-//     return res.status(400).json({ 
-//       success: false, 
-//       error: "Sheet URL and valid row index (1-based) are required" 
-//     });
-//   }
+    const newStatus = event.status === "Private" ? "Announcement" : "Private";
+    event.status = newStatus;
+    await event.save();
 
-//   try {
-//     const sheetId = sheetUrl.match(/\/d\/([^\/]+)/)?.[1];
-//     if (!sheetId) {
-//       return res.status(400).json({ 
-//         success: false, 
-//         error: "Invalid Google Sheet URL" 
-//       });
-//     }
+    // If the event is being published as an announcement, send notifications
+    if (newStatus === "Announcement") {
+      const user = await User.findById(req.userId);
+      if (user && user.managedCommunity) {
+        const io = req.app.get('io');
+        await sendEventNotifications(io, event, req.userId, user.managedCommunity);
+      }
+    }
 
-//     const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
-//     await doc.loadInfo();
-
-//     const sheet = doc.sheetsByIndex[0];
-//     const rowCount = await sheet.getRows().then(rows => rows.length);
-    
-//     if (rowIndex > rowCount) {
-//       return res.status(400).json({ 
-//         success: false, 
-//         error: "Row index out of bounds" 
-//       });
-//     }
-
-//     // Delete the row (0-based index)
-//     await sheet.deleteRows(rowIndex - 1, 1);
-
-//     res.json({ 
-//       success: true, 
-//       message: "Row deleted successfully" 
-//     });
-//   } catch (error) {
-//     console.error("Error deleting row:", error);
-//     res.status(500).json({ 
-//       success: false, 
-//       error: "Failed to delete row",
-//       details: error.message 
-//     });
-//   }
-// });
-
-
+    res.json({ 
+      success: true, 
+      event,
+      message: `Event status changed to ${newStatus}`
+    });
+  } catch (error) {
+    console.error("Error updating event status:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
+  }
+});
 module.exports = router;

@@ -27,7 +27,7 @@
 }
 
 .Signup button {
-  background-color: #4CAF50;
+  background-color:  #1e5980;
   color: white;
   border: none;
   cursor: pointer;
@@ -36,9 +36,15 @@
 }
 
 .Signup button:hover {
-  background-color: #45a049;
+  background-color: #163d58;
 }
 
 .Login-link {
   text-align: center;
+}
+
+.Login-link a{
+color: #3498db;
+text-decoration: none;
+font-weight: 500;
 }

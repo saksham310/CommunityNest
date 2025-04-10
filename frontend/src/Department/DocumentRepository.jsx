@@ -270,6 +270,7 @@ const DocumentRepositoryPage = () => {
                   type="File"
                   title={file.filename}
                   createdAt={file.uploadedAt}
+                  uploadedBy={file.uploadedBy} 
                   onView={() => handleViewClick(file)}
                   onDelete={() => deleteFile(file._id)}
                 />
@@ -323,6 +324,7 @@ const DocumentCard = ({
   title,
   createdAt,
   updatedAt,
+  uploadedBy,
   onView,
   onEdit,
   onDelete,
@@ -345,27 +347,31 @@ const DocumentCard = ({
 
   return (
     <article className="document-card" onClick={onView}>
-      <div className="card-icon">
-        <FiFile size={36} />
-        <span className="file-type-badge">{type}</span>
-      </div>
+    <div className="card-icon">
+      <FiFile size={36} />
+      <span className="file-type-badge">{type}</span>
+    </div>
 
-      <div className="card-content">
-        <h3 className="card-title">{title}</h3>
+    <div className="card-content">
+      <h3 className="card-title">{title}</h3>
 
-        <div className="card-meta">
-          <div className="meta-item">
-            <span className="meta-label">Created:</span>
-            <span>{new Date(createdAt).toLocaleDateString()}</span>
-          </div>
-          {updatedAt && (
-            <div className="meta-item">
-              <span className="meta-label">Updated:</span>
-              <span>{new Date(updatedAt).toLocaleDateString()}</span>
-            </div>
-          )}
+      <div className="card-meta">
+        <div className="meta-item">
+          <span className="meta-label">Uploaded by:</span>
+          <span>{uploadedBy?.username || 'Unknown'}</span>
         </div>
+        <div className="meta-item">
+          <span className="meta-label">Created:</span>
+          <span>{new Date(createdAt).toLocaleDateString()}</span>
+        </div>
+        {updatedAt && (
+          <div className="meta-item">
+            <span className="meta-label">Updated:</span>
+            <span>{new Date(updatedAt).toLocaleDateString()}</span>
+          </div>
+        )}
       </div>
+    </div>
 
       <div className="card-actions" ref={dropdownRef}>
         <div className="dropdown">
