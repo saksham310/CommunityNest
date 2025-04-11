@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate 
 } from "react-router-dom";
 import "./App.css";
 import Header from "./Header/Header.jsx";
@@ -54,8 +55,10 @@ function App() {
       <div className="App">
         {!hideHeaderRoutes.includes(location.pathname) && <Header />}
         <Routes>
+            {/* redirect to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
           <Route
-            path="/"
+            path="/main"
             element={
               <Main
                 selectedCategory={selectedCategory}

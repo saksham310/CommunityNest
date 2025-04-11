@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom'; // Add useLocation
 import './sidebar.css';
 import { FaHome, FaSitemap, FaUsers, FaCalendarAlt, FaUserFriends } from 'react-icons/fa'; 
 import axios from 'axios';
@@ -9,6 +9,8 @@ const Sidebar = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userStatus, setUserStatus] = useState(null);
+  const location = useLocation(); // Get current location
+
 
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -95,35 +97,50 @@ const Sidebar = () => {
       </div>
 
       <div className="Sidebar-menu">
-        <Link to="/dashboard" className="Sidebar-item">
+        <Link 
+          to="/dashboard" 
+          className={`Sidebar-item ${location.pathname === '/dashboard' ? 'active' : ''}`}
+        >
           <div className="Sidebar-icon" style={{ backgroundColor: '#34c759', color: 'white' }}>
             <FaHome />
           </div>
           <span className="Sidebar-text">Dashboard</span>
         </Link>
 
-        <Link to="/members" className="Sidebar-item">
+        <Link 
+          to="/members" 
+          className={`Sidebar-item ${location.pathname.startsWith('/members') ? 'active' : ''}`}
+        >
           <div className="Sidebar-icon" style={{ backgroundColor: '#4b7bec', color: 'white' }}>
             <FaUserFriends />
           </div>
           <span className="Sidebar-text">Members</span>
         </Link>
 
-        <Link to="/department" className="Sidebar-item">
+        <Link 
+          to="/department" 
+          className={`Sidebar-item ${location.pathname.startsWith('/department') ? 'active' : ''}`}
+        >
           <div className="Sidebar-icon" style={{ backgroundColor: '#a259ff', color: 'white' }}>
             <FaSitemap />
           </div>
           <span className="Sidebar-text">Departments</span>
         </Link>
 
-        <Link to="/admin-user-meetings" className="Sidebar-item">
+        <Link 
+          to="/admin-user-meetings" 
+          className={`Sidebar-item ${location.pathname.startsWith('/admin-user-meetings') ? 'active' : ''}`}
+        >
           <div className="Sidebar-icon" style={{ backgroundColor: '#ffcc00', color: 'white' }}>
             <FaUsers />
           </div>
           <span className="Sidebar-text">Meetings</span>
         </Link>
 
-        <Link to="/admin-user-events" className="Sidebar-item">
+        <Link 
+          to="/admin-user-events" 
+          className={`Sidebar-item ${location.pathname.startsWith('/admin-user-events') ? 'active' : ''}`}
+        >
           <div className="Sidebar-icon" style={{ backgroundColor: '#007aff', color: 'white' }}>
             <FaCalendarAlt />
           </div>

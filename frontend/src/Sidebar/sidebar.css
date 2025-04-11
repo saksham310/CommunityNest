@@ -55,8 +55,8 @@
 
 /* Sidebar icon container */
 .Sidebar-icon {
-  width: 40px;
-  height: 40px;
+  width: 35px;
+  height: 35px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -138,4 +138,39 @@
   line-height: 1.2;
   padding: 5px;
   box-sizing: border-box;
+}
+/* Active item styling */
+.Sidebar-item.active {
+  background-color: #f0f7ff; /* Light blue background */
+  position: relative;
+}
+
+.Sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #1c2936; /* Blue accent bar */
+  border-radius: 0 4px 4px 0;
+}
+
+.Sidebar-item.active .Sidebar-text {
+  color: #1c2936; /* Blue text */
+  font-weight: 500;
+}
+
+.Sidebar-item.active .Sidebar-icon {
+  transform: scale(1.1); /* Slightly enlarge the icon */
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2); /* Subtle glow */
+}
+
+/* Hover effects */
+.Sidebar-item:hover {
+  background-color: #f5f5f5;
+}
+
+.Sidebar-item.active:hover {
+  background-color: #e6f2ff; /* Slightly darker blue on hover */
 }
