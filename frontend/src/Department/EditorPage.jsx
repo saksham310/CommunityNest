@@ -5,6 +5,7 @@ import JoditEditor from "jodit-react";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import { FiArrowLeft, FiSave, FiX } from "react-icons/fi";
 import "./EditorPage.css"; // Renamed CSS file for specificity
+import Jodit from "jodit-react";
 
 const EditorPage = () => {
   const { id, department } = useParams();
@@ -67,11 +68,14 @@ const EditorPage = () => {
     uploader: {
       insertImageAsBase64URI: true,
     },
-    style: {
-      fontFamily: "'Inter', sans-serif",
-      fontSize: "16px",
+    defaultMode: "wysiwyg",
+  events: {
+    afterInit: (editor) => {
+      // left align
+      editor.editor.style.textAlign = "left";
     },
-  };
+  },
+};
 
   const saveDocument = () => {
     const userId = localStorage.getItem("userId");

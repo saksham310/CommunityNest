@@ -155,18 +155,20 @@ const DocumentRepositoryPage = () => {
 
   const handleViewClick = (file) => {
     if (file?._id) {
-      window.open(`http://localhost:5001/api/file/view/${file._id}`, "_blank");
+      // Open in new tab with PDF viewer
+      const pdfUrl = `http://localhost:5001/api/file/view/${file._id}`;
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
   const uploadFile = async () => {
     if (!selectedFile) return alert("Please select a file");
 
-    const allowedExtensions = ["doc", "docx", "pdf"];
+    const allowedExtensions = ["pdf"];
     const fileExtension = selectedFile.name.split(".").pop().toLowerCase();
 
     if (!allowedExtensions.includes(fileExtension)) {
-      return alert("Only .doc, .docx, and .pdf files are allowed");
+      return alert("Only .pdf files are allowed");
     }
 
     const formData = new FormData();

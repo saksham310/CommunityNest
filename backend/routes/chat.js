@@ -3,16 +3,19 @@ const router = express.Router();
 const authenticate = require('./authenticate');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Get messages between current user and another user
 router.get('/messages/:userId', authenticate, async (req, res) => {
   try {
     const messages = await Message.find({
       $or: [
-        { sender: req.userId, receiver: req.params.userId },
-        { sender: req.params.userId, receiver: req.userId },
+        { sender: req.userId, recipient: req.params.userId },
+        { sender: req.params.userId, recipient: req.userId },
       ],
-    }).sort({ timestamp: 1 });
+    })
+    .sort({ timestamp: 1 })
+    .populate('sender recipient', 'username profileImage');
 
     res.json(messages);
   } catch (error) {
@@ -34,6 +37,7 @@ router.get('/search', authenticate, async (req, res) => {
         { username: { $regex: term, $options: 'i' } },
         { email: { $regex: term, $options: 'i' } },
       ],
+      _id: { $ne: req.userId } // Exclude current user
     }).select('username email profileImage status');
 
     res.json(users);
@@ -46,111 +50,58 @@ router.get('/search', authenticate, async (req, res) => {
 // Save a message
 router.post('/messages', authenticate, async (req, res) => {
   try {
-    const { sender, receiver, content } = req.body;
+    const { recipient, content } = req.body;
 
     const message = new Message({
-      sender,
-      receiver,
+      sender: req.userId,
+      recipient,
       content,
       timestamp: new Date(),
     });
 
     await message.save();
-    res.status(201).json(message);
+    
+    // Populate sender and recipient details
+    const populatedMessage = await Message.populate(message, [
+      { path: 'sender', select: 'username profileImage' },
+      { path: 'recipient', select: 'username profileImage' }
+    ]);
+
+    res.status(201).json(populatedMessage);
   } catch (error) {
     console.error('Error saving message:', error);
     res.status(500).json({ message: 'Error saving message' });
   }
 });
 
-// //for chat history
-// router.get('/conversations', authenticate, async (req, res) => {
-//     try {
-//       // Find all unique users the current user has messaged with
-//       const conversations = await Message.aggregate([
-//         {
-//           $match: {
-//             $or: [
-//               { sender: mongoose.Types.ObjectId(req.userId) },
-//               { recipient: mongoose.Types.ObjectId(req.userId) }
-//             ]
-//           }
-//         },
-//         {
-//           $project: {
-//             partner: {
-//               $cond: [
-//                 { $eq: ["$sender", mongoose.Types.ObjectId(req.userId)] },
-//                 "$recipient",
-//                 "$sender"
-//               ]
-//             },
-//             content: 1,
-//             timestamp: 1
-//           }
-//         },
-//         {
-//           $group: {
-//             _id: "$partner",
-//             lastMessage: { $last: "$$ROOT" }
-//           }
-//         },
-//         {
-//           $lookup: {
-//             from: "users",
-//             localField: "_id",
-//             foreignField: "_id",
-//             as: "user"
-//           }
-//         },
-//         {
-//           $unwind: "$user"
-//         },
-//         {
-//           $sort: { "lastMessage.timestamp": -1 }
-//         }
-//       ]);
-  
-//       res.json(conversations);
-//     } catch (error) {
-//       console.error('Error fetching conversations:', error);
-//       res.status(500).json({ message: 'Error fetching conversations' });
-//     }
-//   });
-
-// Add this to your chat.js routes
-// Add this new route to get conversation partners
+// Get conversation partners
 router.get('/conversation-partners', authenticate, async (req, res) => {
     try {
-      // Find all unique users the current user has messaged with
+      const userId = new mongoose.Types.ObjectId(req.userId);
+  
+      // Get the most recent message for each conversation partner
       const partners = await Message.aggregate([
         {
           $match: {
             $or: [
-              { sender: mongoose.Types.ObjectId(req.userId) },
-              { recipient: mongoose.Types.ObjectId(req.userId) }
+              { sender: userId },
+              { recipient: userId }
             ]
           }
         },
         {
-          $project: {
-            partnerId: {
+          $sort: { timestamp: -1 }
+        },
+        {
+          $group: {
+            _id: {
               $cond: [
-                { $eq: ["$sender", mongoose.Types.ObjectId(req.userId)] },
+                { $eq: ["$sender", userId] },
                 "$recipient",
                 "$sender"
               ]
             },
-            lastMessage: {
-              content: "$content",
-              timestamp: "$timestamp"
-            }
-          }
-        },
-        {
-          $group: {
-            _id: "$partnerId",
-            lastMessage: { $last: "$lastMessage" }
+            lastMessage: { $first: "$$ROOT" }
           }
         },
         {
@@ -158,20 +109,26 @@ router.get('/conversation-partners', authenticate, async (req, res) => {
             from: "users",
             localField: "_id",
             foreignField: "_id",
-            as: "userDetails"
+            as: "user"
           }
         },
         {
-          $unwind: "$userDetails"
+          $unwind: "$user"
         },
         {
           $project: {
-            _id: "$userDetails._id",
-            username: "$userDetails.username",
-            email: "$userDetails.email",
-            profileImage: "$userDetails.profileImage",
-            status: "$userDetails.status",
-            lastMessage: 1
+            _id: "$user._id",
+            username: "$user.username",
+            email: "$user.email",
+            profileImage: "$user.profileImage",
+            status: "$user.status",
+            lastMessage: {
+              _id: "$lastMessage._id",
+              content: "$lastMessage.content",
+              timestamp: "$lastMessage.timestamp",
+              sender: "$lastMessage.sender",
+              recipient: "$lastMessage.recipient"
+            }
           }
         },
         {
@@ -179,10 +136,19 @@ router.get('/conversation-partners', authenticate, async (req, res) => {
         }
       ]);
   
+      console.log('Conversation partners found:', partners.length); // Debug log
       res.json(partners);
     } catch (error) {
-      console.error('Error fetching conversation partners:', error);
-      res.status(500).json({ message: 'Error fetching conversation history' });
+      console.error('Detailed error:', {
+        message: error.message,
+        stack: error.stack,
+        fullError: error
+      });
+      res.status(500).json({ 
+        message: 'Error fetching conversation history',
+        error: error.message 
+      });
     }
   });
+
 module.exports = router;

@@ -557,3 +557,62 @@
     grid-template-columns: 1fr;
   }
 }
+/* Image Modal Styles */
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  background: transparent;
+  cursor: default;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 80vh;
+  display: block;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.close-image-modal {
+  position: absolute;
+  top: -35px;
+  right: 0;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-image-modal:hover {
+  color: #868686;
+  transform: scale(1.1);
+}
+
+/* Make the card image clickable */
+.card-image-container {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.card-image-container:hover {
+  transform: scale(1.02);
+}

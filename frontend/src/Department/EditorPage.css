@@ -191,3 +191,8 @@ h1 {
     width: 100%;
   }
 }
+.jodit-wysiwyg, 
+.jodit-wysiwyg p, 
+.jodit-wysiwyg div {
+  text-align: left !important;
+}

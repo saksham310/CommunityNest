@@ -3,6 +3,7 @@ import axios from "axios";
 import "./dashboard.css";
 import Sidebar from "../Sidebar/sidebar";
 import { useNotifications } from "../contexts/NotificationContext";
+import { FaTimes } from "react-icons/fa"; // for the close icon
 import {
   FaCalendarAlt,
   FaUserCheck,
@@ -26,7 +27,7 @@ const Dashboard = () => {
   const [noticeContent, setNoticeContent] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
-  
+  const [selectedImage, setSelectedImage] = useState(null);
   const { fetchNotifications } = useNotifications();
   const navigate = useNavigate();
 
@@ -82,7 +83,7 @@ const Dashboard = () => {
         axios.get("http://localhost:5001/api/notice", {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetchNotifications() // This will update your notification context
+        fetchNotifications() 
       ]);
       
       setNotices(noticesRes.data.notices);
@@ -147,6 +148,14 @@ const Dashboard = () => {
     return new Date(dateString).toLocaleDateString("en-US", options);
   };
 
+   //for image modal
+   const openImageModal = (imageUrl) => {
+    setSelectedImage(imageUrl);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
   return (
     <div className="dashboard">
       <Sidebar />
@@ -272,7 +281,7 @@ const Dashboard = () => {
                 {/* Changed from horizontal-scroll-container */}
                 {announcements.map((announcement) => (
                   <div key={announcement._id} className="announcement-card">
-                    <div className="card-image-container">
+                   <div className="card-image-container" onClick={() => openImageModal(announcement.image)}>
                       <img
                         src={
                           announcement.image ||
@@ -291,7 +300,10 @@ const Dashboard = () => {
                     </div>
                   </div>
                 ))}
+
               </div>
+              
+              
             ) : (
               <div className="no-events">
                 <p>No upcoming events currently</p>
@@ -300,6 +312,21 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+       {/* Image Modal */}
+       {selectedImage && (
+        <div className="image-modal-overlay" onClick={closeImageModal}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-image-modal" onClick={closeImageModal}>
+              <FaTimes />
+            </button>
+            <img 
+              src={selectedImage} 
+              alt="Full size preview" 
+              className="modal-image" 
+            />
+          </div>
+        </div>
+      )}
 
       {/* Notice Modal */}
       <Modal

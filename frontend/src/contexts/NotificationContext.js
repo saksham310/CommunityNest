@@ -78,7 +78,7 @@ export const NotificationProvider = ({ children }) => {
       console.log('Socket authenticated');
     });
   
-    // Enhanced notification handler
+    // notification handler
     newSocket.on('new-notification', (newNotification) => {
       console.log('New notification received:', newNotification);
       setNotifications(prev => {

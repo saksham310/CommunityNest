@@ -151,12 +151,20 @@ router.get('/view/:id', async (req, res) => {
     const file = await File.findById(req.params.id);
     if (!file) return res.status(404).send('File not found');
 
-    const filePath = path.join(UPLOADS_DIR, file.filePath);
+    // Get the absolute path to the file
+    const filePath = path.resolve(file.filePath);
+    
     if (!fs.existsSync(filePath)) {
       return res.status(404).send('File does not exist on server');
     }
 
-    res.sendFile(filePath);
+    // Set proper headers for PDF display in browser
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${file.filename}"`);
+    
+    // Stream the file to the response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
   } catch (error) {
     console.error('Error fetching file:', error);
     res.status(500).send('Server error');

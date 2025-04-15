@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import "./department.css";
 import Sidebar from "../Sidebar/sidebar.jsx";
 import dotsIcon from "../dots.png";
+import { FiMoreVertical, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const Department = () => {
   const [departments, setDepartments] = useState([]);
@@ -77,25 +78,29 @@ const Department = () => {
   };
 
   const handleDeleteDepartment = (id) => {
-    if (!window.confirm("Are you sure you want to delete this department?"))
-      return;
-
-    axios
-      .delete(`http://localhost:5001/api/department/deleteDepartment/${id}`)
-      .then(() => {
-        setDepartments(departments.filter((dept) => dept._id !== id));
-        alert("Department deleted successfully.");
-      })
-      .catch((err) => {
-        console.error("Error deleting department:", err.response?.data || err);
-        alert("Error deleting department, please try again.");
-      });
+    if (window.confirm("Are you sure you want to delete this department?")) {
+      axios
+        .delete(`http://localhost:5001/api/department/deleteDepartment/${id}`)
+        .then(() => {
+          setDepartments(departments.filter((dept) => dept._id !== id));
+          alert("Department deleted successfully.");
+        })
+        .catch((err) => {
+          console.error(
+            "Error deleting department:",
+            err.response?.data || err
+          );
+          alert("Error deleting department, please try again.");
+        });
+    }
+    setActiveMenu(null); // Close dropdown after delete action
   };
 
   const handleRenameDepartment = (department) => {
     setDepartmentToRename(department);
     setRenameValue(department.name);
     setRenameModal(true);
+    setActiveMenu(null); // Close dropdown when opening rename modal
   };
 
   const handleSaveRename = async () => {
@@ -124,59 +129,56 @@ const Department = () => {
   };
 
   const handleDepartmentClick = (dept) => {
-    navigate(`/department/${dept._id}/documents`, { state: { departmentName: dept.name } });
+    navigate(`/department/${dept._id}/documents`, {
+      state: { departmentName: dept.name },
+    });
   };
   const dropdownRefs = useRef({});
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      Object.keys(dropdownRefs.current).forEach((key) => {
-        if (
-          dropdownRefs.current[key] &&
-          !dropdownRefs.current[key].contains(event.target) &&
-          !event.target.classList.contains("ellipsis-icon")
-        ) {
-          setActiveMenu(null);
-        }
-      });
+      const isDropdownToggle = event.target.closest(".dropdown-toggle");
+      const isDropdownMenu = event.target.closest(".dropdown-menu");
+
+      if (!isDropdownToggle && !isDropdownMenu) {
+        setActiveMenu(null);
+      }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, []);
 
   return (
     <div className="department-page">
-    <Sidebar />
-    <div className="departments-container">
-      <div className="header-wrapper">
-        <div className="header-titles">
-          <h1>Department Workspace</h1>
-          <p className="subtitle">Organize your documents by department</p>
-        </div>
-        
-        <div className="header-actions">
-          <div className="department-count-badge">
-            <span className="count-number">{departments.length}</span>
-            <span className="count-text">
-              {departments.length === 1 ? "Department" : "Departments"}
-            </span>
+      <Sidebar />
+      <div className="departments-container">
+        <div className="header-wrapper">
+          <div className="header-titles">
+            <h1>Department Workspace</h1>
+            <p className="subtitle">Organize your documents by department</p>
           </div>
-          
-          {userStatus !== "member" && (
-            <button 
-              className="create-department-btn" 
-              onClick={() => setShowModal(true)}
-            >
-              + Create Department
-            </button>
-          )}
-        </div>
-      </div>
 
-        
+          <div className="header-actions">
+            <div className="department-count-badge">
+              <span className="count-number">{departments.length}</span>
+              <span className="count-text">
+                {departments.length === 1 ? "Department" : "Departments"}
+              </span>
+            </div>
+
+            {userStatus !== "member" && (
+              <button
+                className="create-department-btn"
+                onClick={() => setShowModal(true)}
+              >
+                + Create Department
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="department-container">
           {departments.length === 0 ? (
@@ -195,30 +197,46 @@ const Department = () => {
                   </button>
                 </div>
 
-                <button
-                  className="ellipsis-icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenu(activeMenu === dept._id ? null : dept._id);
-                  }}
-                  aria-label="More options"
+                <div
+                  className="card-actions"
+                  ref={(el) => (dropdownRefs.current[dept._id] = el)}
                 >
-                  ⋯
-                </button>
-
-                {activeMenu === dept._id && (
-                  <div
-                    className="dropdown-menu"
-                    ref={(el) => (dropdownRefs.current[dept._id] = el)}
-                  >
-                    <button onClick={() => handleRenameDepartment(dept)}>
-                      Rename
+                  <div className="dropdown">
+                    <button
+                      className="dropdown-toggle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenu(
+                          activeMenu === dept._id ? null : dept._id
+                        );
+                      }}
+                    >
+                      <FiMoreVertical />
                     </button>
-                    <button onClick={() => handleDeleteDepartment(dept._id)}>
-                      Delete
-                    </button>
+                    {activeMenu === dept._id && (
+                      <div className="dropdown-menu">
+                        <button
+                          className="dropdown-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameDepartment(dept);
+                          }}
+                        >
+                          <FiEdit2 /> Rename
+                        </button>
+                        <button
+                          className="dropdown-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDepartment(dept._id);
+                          }}
+                        >
+                          <FiTrash2 /> Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ))
           )}

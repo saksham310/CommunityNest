@@ -24,6 +24,7 @@ const googleAuth = require("./routes/googleAuth");
 // Add near other route imports
 const notificationRoutes = require('./routes/notifications');
 const jwt = require('jsonwebtoken'); 
+const chatRoutes = require('./routes/chat');
 
 // Load environment variables
 dotenv.config();
@@ -79,36 +80,149 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle private messages
-  socket.on('private-message', async (message) => {
-    try {
-      // Validate message
-      if (!message.sender || !message.recipient || !message.content) {
-        console.error('Invalid message format');
-        return;
-      }
-
-      // Save message to database
-      const newMessage = new Message({
-        sender: message.sender,
-        recipient: message.recipient,
-        content: message.content,
-        timestamp: message.timestamp || new Date()
-      });
-      
-      await newMessage.save();
-
-      // Emit to recipient's room
-      io.to(`user_${message.recipient}`).emit('private-message', newMessage);
-      
-      // Also emit to sender (for confirmation and sync)
-      io.to(`user_${message.sender}`).emit('private-message', newMessage);
-      
-      console.log(`Message sent from ${message.sender} to ${message.recipient}`);
-    } catch (error) {
-      console.error('Error handling private message:', error);
+// Replace your current 'private-message' handler with:
+socket.on('private-message', async (message, callback) => {
+  try {
+    // Validate input
+    if (!message.sender || !message.recipient || !message.content) {
+      throw new Error('Invalid message format');
     }
-  });
+
+    // Create and save message
+    const newMessage = new Message({
+      sender: message.sender,
+      recipient: message.recipient,
+      content: message.content
+    });
+
+    const savedMessage = await newMessage.save();
+    
+    // Deep populate the message
+    const populatedMessage = await Message.populate(savedMessage, [
+      { path: 'sender', select: 'username profileImage' },
+      { path: 'recipient', select: 'username profileImage' }
+    ]);
+
+    // Convert to plain object and format IDs
+    const messageToSend = populatedMessage.toObject();
+    messageToSend._id = messageToSend._id.toString();
+    messageToSend.sender._id = messageToSend.sender._id.toString();
+    messageToSend.recipient._id = messageToSend.recipient._id.toString();
+
+    // Emit to both parties
+    io.to(`user_${message.sender}`).emit('new-message', messageToSend);
+    io.to(`user_${message.recipient}`).emit('new-message', messageToSend);
+
+    // Update conversation lists with error handling
+    const updateConvoList = async (userId) => {
+      try {
+        const partners = await getConversationPartners(userId);
+        io.to(`user_${userId}`).emit('conversation-update', partners);
+      } catch (err) {
+        console.error('Failed to update conversation list:', err);
+      }
+    };
+
+    await Promise.all([
+      updateConvoList(message.sender),
+      updateConvoList(message.recipient)
+    ]);
+
+    // Acknowledge success
+    if (callback) callback({ success: true, message: messageToSend });
+  } catch (error) {
+    console.error('Message handling error:', error);
+    if (callback) callback({ 
+      success: false, 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+  
+  // Add this helper function (put it outside the connection handler)
+  // Update the getConversationPartners function in index.js
+async function getConversationPartners(userId) {
+  try {
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error('Invalid user ID');
+    }
+
+    const objectId = new mongoose.Types.ObjectId(userId);
+
+    // First check if there are any messages for this user
+    const hasMessages = await Message.exists({
+      $or: [
+        { sender: objectId },
+        { recipient: objectId }
+      ]
+    });
+
+    if (!hasMessages) {
+      return []; // Return empty array if no messages exist
+    }
+
+    return await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender: objectId },
+            { recipient: objectId }
+          ]
+        }
+      },
+      {
+        $sort: { timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ["$sender", objectId] },
+              "$recipient",
+              "$sender"
+            ]
+          },
+          lastMessage: { $first: "$$ROOT" }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $unwind: "$user"
+      },
+      {
+        $project: {
+          _id: "$user._id",
+          username: "$user.username",
+          email: "$user.email",
+          profileImage: "$user.profileImage",
+          status: "$user.status",
+          lastMessage: {
+            _id: "$lastMessage._id",
+            content: "$lastMessage.content",
+            timestamp: "$lastMessage.timestamp",
+            sender: "$lastMessage.sender",
+            recipient: "$lastMessage.recipient"
+          }
+        }
+      },
+      {
+        $sort: { "lastMessage.timestamp": -1 }
+      }
+    ]);
+  } catch (error) {
+    console.error('Aggregation error:', error);
+    throw error;
+  }
+}
 
   // Handle message history requests
   socket.on('get-messages', async ({ userId1, userId2 }) => {
@@ -127,7 +241,7 @@ io.on('connection', (socket) => {
   });
 
   // socket.on('get-messages', async ({ userId1, userId2 }) => {
-  //   try {
+  //    try {
   //     const messages = await Message.find({
   //       $or: [
   //         { sender: userId1, recipient: userId2 },
@@ -276,7 +390,7 @@ app.use("/api/google", googleAuth.router);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notice", noticeRoutes);
 app.use('/api/notifications', notificationRoutes);
-
+app.use('/api/chat', chatRoutes);
 // Start server
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {

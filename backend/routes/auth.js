@@ -30,11 +30,42 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 
+
+// // Password validation function
+// const validatePassword = (password) => {
+//   const minLength = 8;
+//   const hasUpperCase = /[A-Z]/.test(password);
+//   const hasLowerCase = /[a-z]/.test(password);
+//   const hasNumbers = /\d/.test(password);
+//   const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+//   if (password.length < minLength) {
+//     throw new Error('Password must be at least 8 characters long');
+//   }
+//   if (!hasUpperCase) {
+//     throw new Error('Password must contain at least one uppercase letter');
+//   }
+//   if (!hasLowerCase) {
+//     throw new Error('Password must contain at least one lowercase letter');
+//   }
+//   if (!hasNumbers) {
+//     throw new Error('Password must contain at least one number');
+//   }
+//   if (!hasSpecialChars) {
+//     throw new Error('Password must contain at least one special character');
+//   }
+
+//   return true;
+// };
+
 // Signup Route
 router.post("/signup", async (req, res) => {
   const { username, email, password, status } = req.body;
 
   try {
+// Validate password before hashing
+  //  validatePassword(password);
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -138,7 +169,7 @@ router.post('/login', async (req, res) => {
     const isAdmin = email === 'bristinaprajapati99@gmail.com'; 
 
     // Generate JWT token (use environment variable for secret key)
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '2h' });
 
     console.log('Login successful, token generated'); // Log token generation success
 
@@ -430,4 +461,5 @@ router.get("/user/:id", authenticate, async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
+
 module.exports = router;

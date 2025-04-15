@@ -86,65 +86,7 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// // Create new notice
-// router.post('/', authenticate, async (req, res) => {
-//     try {
-//       const { content } = req.body;
-//       const io = req.app.get('io');
-//       const user = await User.findById(req.userId);
-      
-//       if (!content) {
-//         return res.status(400).json({ 
-//           success: false, 
-//           message: "Notice content is required" 
-//         });
-//       }
-  
-//       if (!user || user.status !== 'community') {
-//         return res.status(403).json({ 
-//           success: false, 
-//           message: "Only community admins can publish notices" 
-//         });
-//       }
-  
-//       if (!user.managedCommunity) {
-//         return res.status(400).json({ 
-//           success: false, 
-//           message: "You don't manage any community" 
-//         });
-//       }
-  
-//       const notice = new Notice({
-//         content,
-//         createdBy: req.userId,
-//         communityId: user.managedCommunity
-//       });
-  
-//       await notice.save();
-      
-//       // Get populated notice for response
-//       const populatedNotice = await Notice.findById(notice._id)
-//         .populate('createdBy', 'username');
-  
-//       // Send notifications to community members
-//       await sendNoticeNotifications(io, notice, req.userId, user.managedCommunity);
-      
-//       res.json({ 
-//         success: true, 
-//         notice: populatedNotice 
-//       });
-//     } catch (error) {
-//       console.error('Error creating notice:', error);
-//       res.status(500).json({ 
-//         success: false, 
-//         message: 'Error creating notice',
-//         error: error.message 
-//       });
-//     }
-//   });
 
-// Update notice
-// Update notice - with notifications
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { content } = req.body;
