@@ -25,9 +25,10 @@ const googleAuth = require("./routes/googleAuth");
 const notificationRoutes = require('./routes/notifications');
 const jwt = require('jsonwebtoken'); 
 const chatRoutes = require('./routes/chat');
-
+const groupRoutes = require('./routes/group');
 // Load environment variables
 dotenv.config();
+const Group = require('./models/Group');
 
 // Initialize Express app
 const app = express();
@@ -56,119 +57,270 @@ io.on('connection', (socket) => {
   // Handle authentication immediately when connection is established
   socket.on('authenticate', async (token) => {
     try {
-      const jwt = require('jsonwebtoken');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Store the user ID in the socket object
       socket.userId = decoded.userId;
       
       // Join user's personal room
       socket.join(`user_${decoded.userId}`);
       
-      // Add to connected clients map
+      // Join all group rooms for this user
+      const userGroups = await Group.find({ members: decoded.userId });
+      userGroups.forEach(group => {
+        socket.join(`group_${group._id}`);
+      });
+  
       connectedClients.set(decoded.userId, socket);
-      
-      console.log(`User ${decoded.userId} authenticated and joined their room`);
       socket.emit('authenticated', { success: true });
-      
-      // Send online status to all connected clients
-      updateOnlineUsers();
     } catch (error) {
       console.error('Socket authentication error:', error);
       socket.emit('authenticated', { success: false, error: 'Authentication failed' });
       socket.disconnect();
     }
   });
-
-// Replace your current 'private-message' handler with:
-socket.on('private-message', async (message, callback) => {
+// Handle private messages
+socket.on('private-message', async (messageData) => {
   try {
-    // Validate input
-    if (!message.sender || !message.recipient || !message.content) {
-      throw new Error('Invalid message format');
+    // Verify sender is the authenticated user
+    if (messageData.sender !== socket.userId) {
+      throw new Error('Unauthorized message sender');
     }
 
-    // Create and save message
-    const newMessage = new Message({
-      sender: message.sender,
-      recipient: message.recipient,
-      content: message.content
+    // Save message to database
+    const message = new Message({
+      sender: messageData.sender,
+      recipient: messageData.recipient,
+      content: messageData.content,
+      timestamp: new Date(messageData.timestamp),
+      type: 'private'
     });
 
-    const savedMessage = await newMessage.save();
-    
-    // Deep populate the message
+    const savedMessage = await message.save();
     const populatedMessage = await Message.populate(savedMessage, [
       { path: 'sender', select: 'username profileImage' },
       { path: 'recipient', select: 'username profileImage' }
     ]);
 
-    // Convert to plain object and format IDs
-    const messageToSend = populatedMessage.toObject();
-    messageToSend._id = messageToSend._id.toString();
-    messageToSend.sender._id = messageToSend.sender._id.toString();
-    messageToSend.recipient._id = messageToSend.recipient._id.toString();
-
-    // Emit to both parties
-    io.to(`user_${message.sender}`).emit('new-message', messageToSend);
-    io.to(`user_${message.recipient}`).emit('new-message', messageToSend);
-
-    // Update conversation lists with error handling
-    const updateConvoList = async (userId) => {
-      try {
-        const partners = await getConversationPartners(userId);
-        io.to(`user_${userId}`).emit('conversation-update', partners);
-      } catch (err) {
-        console.error('Failed to update conversation list:', err);
-      }
-    };
-
-    await Promise.all([
-      updateConvoList(message.sender),
-      updateConvoList(message.recipient)
-    ]);
-
-    // Acknowledge success
-    if (callback) callback({ success: true, message: messageToSend });
+    // Send to both users
+    io.to(`user_${messageData.sender}`).emit('private-message', populatedMessage);
+    io.to(`user_${messageData.recipient}`).emit('private-message', populatedMessage);
   } catch (error) {
-    console.error('Message handling error:', error);
-    if (callback) callback({ 
-      success: false, 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error('Error handling private message:', error);
+    socket.emit('error', { message: 'Failed to send message' });
   }
 });
-  
-  // Add this helper function (put it outside the connection handler)
-  // Update the getConversationPartners function in index.js
-async function getConversationPartners(userId) {
+
+// Handle group messages
+socket.on('group-message', async (data) => {
   try {
-    // Validate userId
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error('Invalid user ID');
-    }
-
-    const objectId = new mongoose.Types.ObjectId(userId);
-
-    // First check if there are any messages for this user
-    const hasMessages = await Message.exists({
-      $or: [
-        { sender: objectId },
-        { recipient: objectId }
-      ]
+    const { groupId, message } = data;
+    
+    // Verify user is member of the group
+    const isMember = await Group.exists({
+      _id: groupId,
+      members: socket.userId
     });
 
-    if (!hasMessages) {
-      return []; // Return empty array if no messages exist
+    if (!isMember) {
+      throw new Error('Not a member of this group');
     }
 
+    // Save message to database
+    const newMessage = new Message({
+      sender: socket.userId,
+      group: groupId,
+      content: message.content,
+      timestamp: new Date(),
+      type: 'group'
+    });
+
+    const savedMessage = await newMessage.save();
+    
+    // Update group's last message
+    await Group.findByIdAndUpdate(groupId, {
+      lastMessage: savedMessage._id
+    });
+
+    // Populate the message
+    const populatedMessage = await Message.populate(savedMessage, [
+      { path: 'sender', select: 'username profileImage' },
+      { path: 'group', select: 'name' }
+    ]);
+
+    // Broadcast to all group members
+    io.to(`group_${groupId}`).emit('group-message', populatedMessage);
+  } catch (error) {
+    console.error('Error handling group message:', error);
+    socket.emit('error', { message: 'Failed to send group message' });
+  }
+});
+
+socket.on('join-private-chat', ({ userId1, userId2 }) => {
+  // Create a unique room ID for this private chat
+  const roomId = [userId1, userId2].sort().join('-');
+  socket.join(roomId);
+  console.log(`User ${socket.userId} joined private chat ${roomId}`);
+});
+
+socket.on('join-group-chat', (groupId) => {
+  socket.join(`group_${groupId}`);
+  console.log(`User ${socket.userId} joined group chat ${groupId}`);
+});
+
+socket.on('get-group-conversations', async () => {
+  if (!socket.userId) return;
+  
+  try {
+    const groups = await Group.aggregate([
+      { $match: { members: mongoose.Types.ObjectId(socket.userId) } },
+      {
+        $lookup: {
+          from: 'messages',
+          let: { groupId: '$_id' },
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { $eq: ['$group', '$$groupId'] },
+                type: 'group'
+              } 
+            },
+            { $sort: { timestamp: -1 } },
+            { $limit: 1 }
+          ],
+          as: 'lastMessage'
+        }
+      },
+      { $unwind: { path: '$lastMessage', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'lastMessage.sender',
+          foreignField: '_id',
+          as: 'lastMessage.sender'
+        }
+      },
+      { $unwind: { path: '$lastMessage.sender', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          members: 1,
+          lastMessage: {
+            $cond: {
+              if: { $ifNull: ['$lastMessage', false] },
+              then: {
+                content: '$lastMessage.content',
+                timestamp: '$lastMessage.timestamp',
+                sender: {
+                  _id: '$lastMessage.sender._id',
+                  username: '$lastMessage.sender.username'
+                }
+              },
+              else: null
+            }
+          }
+        }
+      },
+      { $sort: { 'lastMessage.timestamp': -1 } }
+    ]);
+
+    socket.emit('group-conversations', groups);
+  } catch (error) {
+    console.error('Error fetching group conversations:', error);
+  }
+});
+
+
+
+// Add this helper function
+async function getGroupConversations(userId) {
+  return await Group.aggregate([
+    {
+      $match: {
+        members: mongoose.Types.ObjectId(userId)
+      }
+    },
+    {
+      $lookup: {
+        from: "messages",
+        let: { groupId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$group", "$$groupId"] },
+                  { $eq: ["$type", "group"] }
+                ]
+              }
+            }
+          },
+          { $sort: { timestamp: -1 } },
+          { $limit: 1 }
+        ],
+        as: "lastMessage"
+      }
+    },
+    {
+      $unwind: {
+        path: "$lastMessage",
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastMessage.sender",
+        foreignField: "_id",
+        as: "lastMessage.sender"
+      }
+    },
+    {
+      $unwind: {
+        path: "$lastMessage.sender",
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        description: 1,
+        image: 1,
+        members: 1,
+        unreadCount: 0, // You can implement this later
+        lastMessage: {
+          $cond: {
+            if: { $ifNull: ["$lastMessage", false] },
+            then: {
+              _id: "$lastMessage._id",
+              content: "$lastMessage.content",
+              timestamp: "$lastMessage.timestamp",
+              sender: {
+                _id: "$lastMessage.sender._id",
+                username: "$lastMessage.sender.username",
+                profileImage: "$lastMessage.sender.profileImage"
+              }
+            },
+            else: null
+          }
+        }
+      }
+    },
+    {
+      $sort: { "lastMessage.timestamp": -1 }
+    }
+  ]);
+}
+  
+  // Add this helper function (put it outside the connection handler)
+  async function getConversationPartners(userId) {
     return await Message.aggregate([
       {
         $match: {
           $or: [
-            { sender: objectId },
-            { recipient: objectId }
+            { sender: mongoose.Types.ObjectId(userId) },
+            { recipient: mongoose.Types.ObjectId(userId) }
           ]
         }
       },
@@ -179,7 +331,7 @@ async function getConversationPartners(userId) {
         $group: {
           _id: {
             $cond: [
-              { $eq: ["$sender", objectId] },
+              { $eq: ["$sender", mongoose.Types.ObjectId(userId)] },
               "$recipient",
               "$sender"
             ]
@@ -206,11 +358,8 @@ async function getConversationPartners(userId) {
           profileImage: "$user.profileImage",
           status: "$user.status",
           lastMessage: {
-            _id: "$lastMessage._id",
             content: "$lastMessage.content",
-            timestamp: "$lastMessage.timestamp",
-            sender: "$lastMessage.sender",
-            recipient: "$lastMessage.recipient"
+            timestamp: "$lastMessage.timestamp"
           }
         }
       },
@@ -218,11 +367,7 @@ async function getConversationPartners(userId) {
         $sort: { "lastMessage.timestamp": -1 }
       }
     ]);
-  } catch (error) {
-    console.error('Aggregation error:', error);
-    throw error;
   }
-}
 
   // Handle message history requests
   socket.on('get-messages', async ({ userId1, userId2 }) => {
@@ -240,32 +385,6 @@ async function getConversationPartners(userId) {
     }
   });
 
-  // socket.on('get-messages', async ({ userId1, userId2 }) => {
-  //    try {
-  //     const messages = await Message.find({
-  //       $or: [
-  //         { sender: userId1, recipient: userId2 },
-  //         { sender: userId2, recipient: userId1 }
-  //       ]
-  //     })
-  //     .sort({ timestamp: 1 })
-  //     .populate('sender recipient', 'username profileImage');
-  
-  //     // Mark messages as read
-  //     await Message.updateMany(
-  //       {
-  //         sender: userId2,
-  //         recipient: userId1,
-  //         read: false
-  //       },
-  //       { $set: { read: true } }
-  //     );
-  
-  //     socket.emit('previous-messages', messages);
-  //   } catch (error) {
-  //     console.error('Error fetching message history:', error);
-  //   }
-  // });
   socket.on('disconnect', () => {
     console.log(`User ${socket.userId} disconnected`);
     if (socket.userId) {
@@ -391,6 +510,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notice", noticeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/group', groupRoutes);
+
 // Start server
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
@@ -408,3 +529,4 @@ function sendNotification(userId, data) {
 
 // Make sendNotification available to routes
 app.set('sendNotification', sendNotification);
+

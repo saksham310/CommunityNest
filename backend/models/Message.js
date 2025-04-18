@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose');
 
 const MessageSchema = new mongoose.Schema({
@@ -8,8 +9,7 @@ const MessageSchema = new mongoose.Schema({
   },
   recipient: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   content: {
     type: String,
@@ -24,6 +24,15 @@ const MessageSchema = new mongoose.Schema({
   read: {
     type: Boolean,
     default: false
+  },
+  group: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Group'
+  },
+  type: {
+    type: String,
+    enum: ['private', 'group'],
+    required: true
   }
 }, {
   toJSON: {
@@ -58,5 +67,7 @@ MessageSchema.virtual('recipientObj', {
   foreignField: '_id',
   justOne: true
 });
+
+
 
 module.exports = mongoose.model('Message', MessageSchema);

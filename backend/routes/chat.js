@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const authenticate = require('./authenticate');
@@ -48,29 +49,57 @@ router.get('/search', authenticate, async (req, res) => {
 });
 
 // Save a message
+// routes/chat.js
+
+// Save a message (updated route)
 router.post('/messages', authenticate, async (req, res) => {
   try {
-    const { recipient, content } = req.body;
+    const { recipient, content, type = 'private', group } = req.body;
 
-    const message = new Message({
+    // Validate the request
+    if (!content) {
+      return res.status(400).json({ message: 'Message content is required' });
+    }
+
+    if (type === 'private' && !recipient) {
+      return res.status(400).json({ message: 'Recipient is required for private messages' });
+    }
+
+    if (type === 'group' && !group) {
+      return res.status(400).json({ message: 'Group ID is required for group messages' });
+    }
+
+    // Create the message
+    const messageData = {
       sender: req.userId,
-      recipient,
       content,
-      timestamp: new Date(),
-    });
+      type,
+      timestamp: new Date()
+    };
 
+    if (type === 'private') {
+      messageData.recipient = recipient;
+    } else {
+      messageData.group = group;
+    }
+
+    const message = new Message(messageData);
     await message.save();
     
-    // Populate sender and recipient details
+    // Populate the message with sender/recipient/group details
     const populatedMessage = await Message.populate(message, [
       { path: 'sender', select: 'username profileImage' },
-      { path: 'recipient', select: 'username profileImage' }
+      { path: 'recipient', select: 'username profileImage' },
+      { path: 'group', select: 'name' }
     ]);
 
     res.status(201).json(populatedMessage);
   } catch (error) {
     console.error('Error saving message:', error);
-    res.status(500).json({ message: 'Error saving message' });
+    res.status(500).json({ 
+      message: 'Error saving message',
+      error: error.message 
+    });
   }
 });
 
@@ -151,4 +180,51 @@ router.get('/conversation-partners', authenticate, async (req, res) => {
     }
   });
 
+
+
+  //group chat
+
+// Get all users for group creation
+router.get('/users-for-group', authenticate, async (req, res) => {
+    try {
+      const users = await User.find({
+        _id: { $ne: req.userId } // Exclude current user
+      }).select('username email profileImage status');
+      
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching users for group:', error);
+      res.status(500).json({ message: 'Error fetching users' });
+    }
+  });
+  
+  // Create a group
+  router.post('/create-group', authenticate, async (req, res) => {
+    try {
+      const { name, members } = req.body;
+      
+      // Include the creator in the members
+      const allMembers = [...new Set([...members, req.userId])];
+      
+      const group = new Group({
+        name,
+        creator: req.userId,
+        members: allMembers,
+        admins: [req.userId]
+      });
+  
+      await group.save();
+      
+      // Populate the group data
+      const populatedGroup = await Group.findById(group._id)
+        .populate('creator members admins', 'username email profileImage');
+  
+      res.status(201).json(populatedGroup);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      res.status(500).json({ message: 'Error creating group' });
+    }
+  });
+
 module.exports = router;
+
