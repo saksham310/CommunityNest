@@ -53,6 +53,10 @@ const MessageSchema = new mongoose.Schema({
 MessageSchema.index({ sender: 1, recipient: 1 });
 MessageSchema.index({ recipient: 1, sender: 1 });
 
+// Add index to your MessageSchema for better performance
+MessageSchema.index({ recipient: 1, sender: 1, read: 1 });
+MessageSchema.index({ group: 1, read: 1 });
+
 // Virtuals
 MessageSchema.virtual('senderObj', {
   ref: 'User',

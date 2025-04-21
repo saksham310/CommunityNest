@@ -134,33 +134,64 @@ router.post('/:groupId/members', authenticate, async (req, res) => {
 // Remove members from group
 router.delete('/:groupId/members', authenticate, async (req, res) => {
   try {
+    const { groupId } = req.params;
     const { members } = req.body;
-    
-    // Can't remove yourself if you're the only admin
-    if (members.includes(req.userId)) {
-      const group = await Group.findById(req.params.groupId);
-      if (group.admins.length === 1 && group.admins[0].equals(req.userId)) {
-        return res.status(400).json({ message: 'Cannot remove the only admin' });
-      }
+
+    // Validate input
+    if (!groupId) {
+      return res.status(400).json({ message: 'Group ID is required' });
     }
+
+    if (!members || !Array.isArray(members)) {  // Fixed missing parenthesis
+      return res.status(400).json({ message: 'Members array is required' });
+    }
+
+    // Check if user is an admin of the group
+    const group = await Group.findOne({
+      _id: groupId,
+      admins: req.userId
+    });
+
+    if (!group) {
+      return res.status(403).json({ 
+        message: 'Not authorized or group not found' 
+      });
+    }
+
+    // Prevent removing the last admin
+    const willRemoveAdmin = group.admins.some(adminId => 
+      members.includes(adminId.toString())
+    );
     
-    const updatedGroup = await Group.findOneAndUpdate(
+    if (willRemoveAdmin && group.admins.length <= 1) {
+      return res.status(400).json({ 
+        message: 'Cannot remove the only admin' 
+      });
+    }
+
+    // Update the group
+    const updatedGroup = await Group.findByIdAndUpdate(
+      groupId,
       {
-        _id: req.params.groupId,
-        admins: req.userId
+        $pull: { 
+          members: { $in: members },
+          admins: { $in: members }
+        }
       },
-      { $pull: { members: { $in: members }, admins: { $in: members } } },
       { new: true }
-    ).populate('creator members admins', 'username email profileImage');
+    ).populate('members admins', 'username profileImage');
 
     if (!updatedGroup) {
-      return res.status(404).json({ message: 'Group not found or not authorized' });
+      return res.status(404).json({ message: 'Group not found' });
     }
 
     res.json(updatedGroup);
   } catch (error) {
     console.error('Error removing members:', error);
-    res.status(500).json({ message: 'Error removing members' });
+    res.status(500).json({ 
+      message: 'Error removing members',
+      error: error.message 
+    });
   }
 });
 

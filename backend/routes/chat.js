@@ -104,82 +104,89 @@ router.post('/messages', authenticate, async (req, res) => {
 });
 
 // Get conversation partners
+
+// routes/chat.js
 router.get('/conversation-partners', authenticate, async (req, res) => {
-    try {
-      const userId = new mongoose.Types.ObjectId(req.userId);
-  
-      // Get the most recent message for each conversation partner
-      const partners = await Message.aggregate([
-        {
-          $match: {
-            $or: [
-              { sender: userId },
-              { recipient: userId }
+  try {
+    const userId = new mongoose.Types.ObjectId(req.userId);
+
+    const partners = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender: userId, type: 'private' },
+            { recipient: userId, type: 'private' }
+          ]
+        }
+      },
+      {
+        $sort: { timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ["$sender", userId] },
+              "$recipient",
+              "$sender"
             ]
-          }
-        },
-        {
-          $sort: { timestamp: -1 }
-        },
-        {
-          $group: {
-            _id: {
+          },
+          lastMessage: { $first: "$$ROOT" },
+          unreadCount: {
+            $sum: {
               $cond: [
-                { $eq: ["$sender", userId] },
-                "$recipient",
-                "$sender"
+                { 
+                  $and: [
+                    { $eq: ["$recipient", userId] },
+                    { $ne: ["$read", true] }
+                  ] 
+                },
+                1,
+                0
               ]
-            },
-            lastMessage: { $first: "$$ROOT" }
-          }
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "_id",
-            foreignField: "_id",
-            as: "user"
-          }
-        },
-        {
-          $unwind: "$user"
-        },
-        {
-          $project: {
-            _id: "$user._id",
-            username: "$user.username",
-            email: "$user.email",
-            profileImage: "$user.profileImage",
-            status: "$user.status",
-            lastMessage: {
-              _id: "$lastMessage._id",
-              content: "$lastMessage.content",
-              timestamp: "$lastMessage.timestamp",
-              sender: "$lastMessage.sender",
-              recipient: "$lastMessage.recipient"
             }
           }
-        },
-        {
-          $sort: { "lastMessage.timestamp": -1 }
         }
-      ]);
-  
-      console.log('Conversation partners found:', partners.length); // Debug log
-      res.json(partners);
-    } catch (error) {
-      console.error('Detailed error:', {
-        message: error.message,
-        stack: error.stack,
-        fullError: error
-      });
-      res.status(500).json({ 
-        message: 'Error fetching conversation history',
-        error: error.message 
-      });
-    }
-  });
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $unwind: "$user"
+      },
+      {
+        $project: {
+          _id: "$user._id",
+          username: "$user.username",
+          email: "$user.email",
+          profileImage: "$user.profileImage",
+          status: "$user.status",
+          lastMessage: {
+            _id: "$lastMessage._id",
+            content: "$lastMessage.content",
+            timestamp: "$lastMessage.timestamp",
+            sender: "$lastMessage.sender",
+            recipient: "$lastMessage.recipient"
+          },
+          unreadCount: 1
+        }
+      },
+      {
+        $sort: { "lastMessage.timestamp": -1 }
+      }
+    ]);
 
+    res.json(partners);
+  } catch (error) {
+    console.error('Error fetching conversation partners:', error);
+    res.status(500).json({ message: 'Error fetching conversation history' });
+  }
+});
 
 
   //group chat
@@ -223,6 +230,39 @@ router.get('/users-for-group', authenticate, async (req, res) => {
     } catch (error) {
       console.error('Error creating group:', error);
       res.status(500).json({ message: 'Error creating group' });
+    }
+  });
+
+
+  // Add this to your chat.js routes
+  router.post('/mark-as-read', authenticate, async (req, res) => {
+    try {
+      const { conversationId, type } = req.body;
+      
+      if (type === 'private') {
+        await Message.updateMany(
+          {
+            recipient: req.userId,
+            sender: conversationId,
+            read: false
+          },
+          { $set: { read: true } }
+        );
+      } else if (type === 'group') {
+        await Message.updateMany(
+          {
+            group: conversationId,
+            sender: { $ne: req.userId },
+            read: false
+          },
+          { $set: { read: true } }
+        );
+      }
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      res.status(500).json({ message: 'Error marking messages as read' });
     }
   });
 

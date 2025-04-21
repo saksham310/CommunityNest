@@ -50,15 +50,19 @@ const Message = require('./models/Message'); // You'll need to create this model
 // Store connected clients
 const connectedClients = new Map();
 
-// Update your Socket.IO connection handler
+// In index.js
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  // Handle authentication immediately when connection is established
+  // Handle authentication
   socket.on('authenticate', async (token) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.userId = decoded.userId;
+      socket.username = decoded.username;
+      
+      // Store the connection
+      connectedClients.set(decoded.userId, socket);
       
       // Join user's personal room
       socket.join(`user_${decoded.userId}`);
@@ -68,15 +72,31 @@ io.on('connection', (socket) => {
       userGroups.forEach(group => {
         socket.join(`group_${group._id}`);
       });
-  
-      connectedClients.set(decoded.userId, socket);
+      
       socket.emit('authenticated', { success: true });
+      updateOnlineUsers();
     } catch (error) {
       console.error('Socket authentication error:', error);
       socket.emit('authenticated', { success: false, error: 'Authentication failed' });
       socket.disconnect();
     }
   });
+
+  // Handle private chat joining
+  socket.on('join-private-chat', ({ userId1, userId2 }) => {
+    const roomId = [userId1, userId2].sort().join('_');
+    socket.join(`private_${roomId}`);
+    console.log(`User ${socket.userId} joined private chat ${roomId}`);
+  });
+
+  // Handle group chat joining
+  socket.on('join-group-chat', (groupId) => {
+    socket.join(`group_${groupId}`);
+    console.log(`User ${socket.userId} joined group chat ${groupId}`);
+  });
+
+  
+
 // Handle private messages
 socket.on('private-message', async (messageData) => {
   try {
@@ -154,17 +174,7 @@ socket.on('group-message', async (data) => {
   }
 });
 
-socket.on('join-private-chat', ({ userId1, userId2 }) => {
-  // Create a unique room ID for this private chat
-  const roomId = [userId1, userId2].sort().join('-');
-  socket.join(roomId);
-  console.log(`User ${socket.userId} joined private chat ${roomId}`);
-});
 
-socket.on('join-group-chat', (groupId) => {
-  socket.join(`group_${groupId}`);
-  console.log(`User ${socket.userId} joined group chat ${groupId}`);
-});
 
 socket.on('get-group-conversations', async () => {
   if (!socket.userId) return;
@@ -529,4 +539,3 @@ function sendNotification(userId, data) {
 
 // Make sendNotification available to routes
 app.set('sendNotification', sendNotification);
-

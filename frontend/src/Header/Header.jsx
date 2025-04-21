@@ -45,41 +45,46 @@ const Header = () => {
   });
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (token) {
-          const response = await axios.get(
-            "http://localhost:5001/api/auth/user",
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-
-          // Always update from server response first
-          if (response.data.profileImage) {
-            localStorage.setItem("profileImage", response.data.profileImage);
-            setUser((prev) => ({
-              ...prev,
-              profileImage: response.data.profileImage,
-            }));
-          } else {
-            // Fallback to localStorage if no image in response
-            const storedImage = localStorage.getItem("profileImage");
-            if (storedImage) {
-              setUser((prev) => ({ ...prev, profileImage: storedImage }));
-            }
-          }
+   // In the fetchUserData function in Header.jsx
+   const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+  
+      const response = await axios.get(
+        "http://localhost:5001/api/auth/user",
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        // Fallback to localStorage if API fails
-        const storedImage = localStorage.getItem("profileImage");
-        if (storedImage) {
-          setUser((prev) => ({ ...prev, profileImage: storedImage }));
-        }
+      );
+  
+      if (response.data) {
+        const { username, email, profileImage } = response.data;
+        setUser({
+          username: username || localStorage.getItem("username") || "Guest",
+          email: email || localStorage.getItem("email") || "Not Available",
+          profileImage: profileImage || localStorage.getItem("profileImage") || null,
+        });
+        
+        // Update localStorage
+        if (username) localStorage.setItem("username", username);
+        if (email) localStorage.setItem("email", email);
+        if (profileImage) localStorage.setItem("profileImage", profileImage);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      // Handle 401 by clearing invalid token
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+      }
+      // Fallback to localStorage
+      setUser({
+        username: localStorage.getItem("username") || "Guest",
+        email: localStorage.getItem("email") || "Not Available",
+        profileImage: localStorage.getItem("profileImage") || null,
+      });
+    }
+  };
 
     fetchUserData();
   }, []);
