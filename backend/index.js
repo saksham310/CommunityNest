@@ -26,6 +26,8 @@ const notificationRoutes = require('./routes/notifications');
 const jwt = require('jsonwebtoken'); 
 const chatRoutes = require('./routes/chat');
 const groupRoutes = require('./routes/group');
+const Message = require('./models/Message'); 
+const config = require('./config');
 // Load environment variables
 dotenv.config();
 const Group = require('./models/Group');
@@ -45,7 +47,7 @@ const io = new SocketIOServer(server, {
   }
 });
 
-const Message = require('./models/Message'); // You'll need to create this model
+
 
 // Store connected clients
 const connectedClients = new Map();
@@ -57,7 +59,7 @@ io.on('connection', (socket) => {
   // Handle authentication
   socket.on('authenticate', async (token) => {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, config.JWT_SECRET);
       socket.userId = decoded.userId;
       socket.username = decoded.username;
       
@@ -539,3 +541,5 @@ function sendNotification(userId, data) {
 
 // Make sendNotification available to routes
 app.set('sendNotification', sendNotification);
+
+
