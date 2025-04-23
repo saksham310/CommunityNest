@@ -1,13 +1,12 @@
-
 const express = require("express");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto"); // To generate reset tokens
 const nodemailer = require("nodemailer"); // To send emails
 const router = express.Router();
 const Community = require("../models/Community");
-const authenticate = require("./authenticate"); 
-const jwt = require('jsonwebtoken'); 
-const config = require('../config');
+const authenticate = require("./authenticate");
+const jwt = require('jsonwebtoken');
+
 
 
 
@@ -65,7 +64,7 @@ router.post("/signup", async (req, res) => {
 
   try {
 // Validate password before hashing
-  //  validatePassword(password);
+    //  validatePassword(password);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -80,10 +79,10 @@ router.post("/signup", async (req, res) => {
 
     // If the user is signing up as a community admin, create a community
     if (status === "community") {
-      const newCommunity = new Community({ 
-        name: `${username}'s Community`, 
-        admin: newUser._id, 
-        members: [] 
+      const newCommunity = new Community({
+        name: `${username}'s Community`,
+        admin: newUser._id,
+        members: []
       });
       await newCommunity.save();
       newUser.managedCommunity = newCommunity._id; // Assign the community to the admin
@@ -127,7 +126,7 @@ router.get("/data", authenticate, async (req, res) => {
   console.log("User ID from token:", req.userId);  // Debug log
   try {
     const user = await User.findById(req.userId).select("status managedCommunity communities");
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found!" });
     }
@@ -167,28 +166,27 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if the email belongs to an admin
-    const isAdmin = email === 'bristinaprajapati99@gmail.com'; 
+    const isAdmin = email === 'bristinaprajapati99@gmail.com';
 
     // Generate JWT token (use environment variable for secret key)
-    // const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '2h' });
-    const token = jwt.sign({ userId: user._id }, config.JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '2h' });
 
     console.log('Login successful, token generated'); // Log token generation success
 
     // Send response with user details, token, and communities
-   // In auth.js login route
-res.status(200).json({ 
-  message: 'Login successful', 
-  userId: user._id, 
-  isAdmin, 
-  token,
-  username: user.username,
-  email: user.email,
-  profileImage: user.profileImage || null, 
-  status: user.status, 
-  communities: user.communities,
-});
-    
+    // In auth.js login route
+    res.status(200).json({
+      message: 'Login successful',
+      userId: user._id,
+      isAdmin,
+      token,
+      username: user.username,
+      email: user.email,
+      profileImage: user.profileImage || null,
+      status: user.status,
+      communities: user.communities,
+    });
+
   } catch (err) {
     console.error('Login error:', err.message || err); // Log error details for debugging
     res.status(500).json({ message: 'Server error' });
@@ -305,18 +303,18 @@ router.get("/getCommunityDetails/:userId", async (req, res) => {
 // Logout route to clear the googleAuthToken cookie
 router.get("/logout", (req, res) => {
   try {
-      // Clear the googleAuthToken cookie
-      res.clearCookie("googleAuthToken", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production", // Ensure secure in production
-          sameSite: "Strict",
-      });
+    // Clear the googleAuthToken cookie
+    res.clearCookie("googleAuthToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Ensure secure in production
+      sameSite: "Strict",
+    });
 
-      // Optionally, you can also clear other cookies or session data here
-      res.status(200).json({ success: true, message: "Logged out successfully" });
+    // Optionally, you can also clear other cookies or session data here
+    res.status(200).json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-      console.error("Error during logout:", error);
-      res.status(500).json({ success: false, message: "Error during logout" });
+    console.error("Error during logout:", error);
+    res.status(500).json({ success: false, message: "Error during logout" });
   }
 });
 
@@ -338,9 +336,9 @@ router.post('/store-google-auth', authenticate, async (req, res) => {
 router.get('/check-google-auth', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    res.status(200).json({ 
+    res.status(200).json({
       isGoogleAuthed: !!user.googleAuthToken,
-      email: user.email 
+      email: user.email
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -359,20 +357,20 @@ router.post("/upload-profile-image", authenticate, upload.single("profileImage")
     }
 
     cloudinary.uploader.upload_stream(
-      { folder: "profile-images" },
-      async (error, result) => {
-        if (error) {
-          return res.status(500).json({ success: false, message: "Error uploading image" });
+        { folder: "profile-images" },
+        async (error, result) => {
+          if (error) {
+            return res.status(500).json({ success: false, message: "Error uploading image" });
+          }
+
+          // Update user in database
+          await User.findByIdAndUpdate(req.userId, { profileImage: result.secure_url });
+
+          res.json({
+            success: true,
+            imageUrl: result.secure_url
+          });
         }
-
-        // Update user in database
-        await User.findByIdAndUpdate(req.userId, { profileImage: result.secure_url });
-
-        res.json({ 
-          success: true, 
-          imageUrl: result.secure_url 
-        });
-      }
     ).end(req.file.buffer);
   } catch (error) {
     console.error("Error uploading profile image:", error);
@@ -384,14 +382,14 @@ router.post("/upload-profile-image", authenticate, upload.single("profileImage")
 router.delete("/remove-profile-image", authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    
+
     if (!user.profileImage) {
       return res.json({ success: true });
     }
 
     // Extract public ID from URL
     const publicId = user.profileImage.split("/").pop().split(".")[0];
-    
+
     // Delete from Cloudinary
     await cloudinary.uploader.destroy(`profile-images/${publicId}`);
 
@@ -425,12 +423,12 @@ router.get("/user", authenticate, async (req, res) => {
 router.get('/community/:id', authenticate, async (req, res) => {
   try {
     const community = await Community.findById(req.params.id)
-      .populate('admin', 'profileImage username email');
-    
+        .populate('admin', 'profileImage username email');
+
     if (!community) {
       return res.status(404).json({ message: 'Community not found' });
     }
-    
+
     res.json({
       _id: community._id,
       name: community.name,
@@ -445,7 +443,7 @@ router.get('/community/:id', authenticate, async (req, res) => {
 router.get('/users', authenticate, async (req, res) => {
   try {
     const users = await User.find({ _id: { $ne: req.userId } })
-      .select('username email status profileImage');
+        .select('username email status profileImage');
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching users' });
@@ -465,6 +463,4 @@ router.get("/user/:id", authenticate, async (req, res) => {
 });
 
 module.exports = router;
-
-
 

@@ -83,7 +83,7 @@ const Dashboard = () => {
         axios.get("http://localhost:5001/api/notice", {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetchNotifications() 
+        fetchNotifications()
       ]);
       
       setNotices(noticesRes.data.notices);

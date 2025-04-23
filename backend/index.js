@@ -1,4 +1,3 @@
-
 const http = require('http');
 const express = require("express");
 const mongoose = require("mongoose");
@@ -28,6 +27,12 @@ const chatRoutes = require('./routes/chat');
 const groupRoutes = require('./routes/group');
 const Message = require('./models/Message'); 
 const config = require('./config');
+// const postRoutes = require('./routes/posts');
+// const conversationRoutes = require('./routes/conversations');
+// const messageRoutes = require('./routes/messages');
+
+
+
 // Load environment variables
 dotenv.config();
 const Group = require('./models/Group');
@@ -52,9 +57,15 @@ const io = new SocketIOServer(server, {
 // Store connected clients
 const connectedClients = new Map();
 
-// In index.js
+
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
+
+  // socket.on('new-message', () => {
+  //   console.log('New message event received');
+  //   const message = 'BRISITNA'
+  //   io.emit('refetch',{message})
+  // })
 
   // Handle authentication
   socket.on('authenticate', async (token) => {
@@ -87,7 +98,9 @@ io.on('connection', (socket) => {
   // Handle private chat joining
   socket.on('join-private-chat', ({ userId1, userId2 }) => {
     const roomId = [userId1, userId2].sort().join('_');
+
     socket.join(`private_${roomId}`);
+    
     console.log(`User ${socket.userId} joined private chat ${roomId}`);
   });
 
@@ -101,19 +114,20 @@ io.on('connection', (socket) => {
 
 // Handle private messages
 socket.on('private-message', async (messageData) => {
+  console.log('Received private message:', messageData);
   try {
-    // Verify sender is the authenticated user
-    if (messageData.sender !== socket.userId) {
-      throw new Error('Unauthorized message sender');
-    }
-
-    // Save message to database
+    // Validate sender
+    // if (messageData.sender !== socket.userId) {
+    //   throw new Error('Unauthorized message sender');
+    // }
+    // Create and save message
     const message = new Message({
       sender: messageData.sender,
       recipient: messageData.recipient,
       content: messageData.content,
-      timestamp: new Date(messageData.timestamp),
-      type: 'private'
+      timestamp: new Date(),
+      type: 'private',
+      status: 'delivered'
     });
 
     const savedMessage = await message.save();
@@ -122,12 +136,31 @@ socket.on('private-message', async (messageData) => {
       { path: 'recipient', select: 'username profileImage' }
     ]);
 
-    // Send to both users
-    io.to(`user_${messageData.sender}`).emit('private-message', populatedMessage);
-    io.to(`user_${messageData.recipient}`).emit('private-message', populatedMessage);
+    io.emit('refetch',{messageData})
+    // // Send to recipient
+    // io.to(`user_${messageData.sender}`).emit('private-message', {
+    //   message: populatedMessage,
+    //   isOwnMessage: true
+    // });
+
+    // // Send confirmation to sender
+    // callback({ 
+    //   status: 'success',
+    //   message: {
+    //     ...populatedMessage.toObject(),
+    //     status: 'delivered'
+    //   }
+    // });
+
+    // io.to(`user_${messageData.recipient}`).emit('private-message', {
+    //   message: populatedMessage,
+    //   isOwnMessage: false
+    // });
+    
+
   } catch (error) {
-    console.error('Error handling private message:', error);
-    socket.emit('error', { message: 'Failed to send message' });
+    console.error('Message send error:', error);
+    callback({ status: 'error', error: error.message });
   }
 });
 
@@ -169,7 +202,10 @@ socket.on('group-message', async (data) => {
     ]);
 
     // Broadcast to all group members
-    io.to(`group_${groupId}`).emit('group-message', populatedMessage);
+    io.to(`group_${groupId}`).emit('group-message', {
+      message: populatedMessage
+    });
+    
   } catch (error) {
     console.error('Error handling group message:', error);
     socket.emit('error', { message: 'Failed to send group message' });
@@ -242,7 +278,10 @@ socket.on('get-group-conversations', async () => {
   }
 });
 
-
+socket.on('new-msg',async ({selectedId,currentId}) => {
+io.emit(`${selectedId}`,currentId);
+}
+);
 
 // Add this helper function
 async function getGroupConversations(userId) {
@@ -523,6 +562,9 @@ app.use("/api/notice", noticeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/group', groupRoutes);
+// app.use('/api/posts', postRoutes);
+// app.use('/api/conversations', conversationRoutes);
+// app.use('/api/messages', messageRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5001;
@@ -541,5 +583,3 @@ function sendNotification(userId, data) {
 
 // Make sendNotification available to routes
 app.set('sendNotification', sendNotification);
-
-

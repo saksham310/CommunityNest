@@ -1,21 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { io } from "socket.io-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
   faPaperPlane,
   faUser,
-  faClock,
   faUsers,
   faPlus,
   faTimes,
-  faCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import "./chat.css";
 import Sidebar from "../Sidebar/sidebar";
-import { initializeSocket, getSocket } from "../services/socketService";
+import { io } from "socket.io-client";
 
 const Chat = () => {
   // State variables
@@ -24,7 +21,6 @@ const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
@@ -36,7 +32,7 @@ const Chat = () => {
   const [showGroupMembers, setShowGroupMembers] = useState(false);
   const navigate = useNavigate();
   const [unreadCounts, setUnreadCounts] = useState({});
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
   // Current user details
   const currentUserId = localStorage.getItem("userId");
@@ -45,420 +41,93 @@ const Chat = () => {
   const [conversationPartners, setConversationPartners] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [conversations, setConversations] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [activeConversations, setActiveConversations] = useState([]);
 
-  // Single socket initialization useEffect
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+  const socketRef = useRef(null);
 
-    const socket = initializeSocket(token);
-    setSocket(socket);
+//   useEffect(() => {
 
-    socket.on("connect", () => {
-      console.log("Socket connected with ID:", socket.id);
-      setIsSocketConnected(true);
-    });
+//     // Connect to socket server
+//     socketRef.current = io("http://localhost:5001");
 
-    // Add your chat-specific event handlers here
-    socket.on("private-message", handleNewPrivateMessage);
-    socket.on("group-message", handleNewGroupMessage);
-    // Message handlers
-    socket.on("message-confirmed", handleMessageConfirmed);
-    socket.on("message-failed", handleMessageFailed);
-    socket.on("new-private-message", handleNewPrivateMessage);
-    socket.on("new-group-message", handleNewGroupMessage);
-    socket.on("refresh-chat", handleRefreshChat);
-    socket.on("online-users-update", ({ onlineUsers }) => {
-      setOnlineUsers(onlineUsers);
-    });
+//     // Setup event listeners
+//     const onConnect = () => {
+//       console.log("Connected to socket server");
+//     };
 
-    // Ping/pong for connection health
-    let pingInterval;
-    socket.on("connect", () => {
-      pingInterval = setInterval(() => {
-        socket.emit("ping");
-      }, 25000);
-    });
+//     const onRefetch = (data) => {
+//       const { messageData } = data;
+//       const condition =
+//         currentUserId === messageData.recipient._id &&
+//         selectedUser?._id === messageData.sender._id;
+//       console.log("condition", condition);
+//       if(!condition) {
+//           socketRef.current.off("refetch");
+//       }
+//       if (condition) {
+//           console.log('triggerring')
+//         setMessages((prev) => [...prev, messageData]);
+//       }
+//     };
 
-    socket.on("disconnect", () => {
-      clearInterval(pingInterval);
-    });
+//     // Add event listeners
+//     socketRef.current.on("connect", onConnect);
+//     socketRef.current.on("refetch", onRefetch);
 
-    socket.on("pong", () => {
-      console.log("Server is alive");
-    });
-
-    // Cleanup
-    return () => {
-      clearInterval(pingInterval);
-      socket.off("message-confirmed", handleMessageConfirmed);
-      socket.off("message-failed", handleMessageFailed);
-      socket.off("new-private-message", handleNewPrivateMessage);
-      socket.off("new-group-message", handleNewGroupMessage);
-      socket.off("refresh-chat", handleRefreshChat);
-      socket.off("online-users-update");
-      socket.disconnect();
-    };
-  }, [navigate]);
-
-  // Message handlers
-  const handleMessageConfirmed = useCallback(({ tempId, confirmedMessage }) => {
-    setMessages((prev) =>
-      prev.map((msg) => (msg._id === tempId ? confirmedMessage : msg))
-    );
-  }, []);
-
-  const handleMessageFailed = useCallback(({ tempId }) => {
-    setMessages((prev) => prev.filter((msg) => msg._id !== tempId));
-    alert("Failed to send message");
-  }, []);
-
-  const handleNewPrivateMessage = useCallback(
-    ({ message, isOwnMessage }) => {
-      // Update messages if in active chat
-      if (
-        selectedUser &&
-        (message.sender._id === selectedUser._id ||
-          message.recipient._id === selectedUser._id)
-      ) {
-        setMessages((prev) => [...prev, message]);
-      }
-
-      // Update conversation list
-      setConversationPartners((prev) => {
-        const partnerId = isOwnMessage
-          ? message.recipient._id
-          : message.sender._id;
-        const existingIndex = prev.findIndex((p) => p._id === partnerId);
-
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            lastMessage: message,
-          };
-          return updated.sort((a, b) => {
-            const aTime = a.lastMessage?.timestamp || a.createdAt;
-            const bTime = b.lastMessage?.timestamp || b.createdAt;
-            return new Date(bTime) - new Date(aTime);
-          });
-        }
-        return prev;
-      });
-
-      // Update unread counts
-      if (
-        !selectedUser ||
-        selectedUser._id !==
-          (isOwnMessage ? message.recipient._id : message.sender._id)
-      ) {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [isOwnMessage ? message.recipient._id : message.sender._id]:
-            (prev[isOwnMessage ? message.recipient._id : message.sender._id] ||
-              0) + 1,
-        }));
-      }
-    },
-    [selectedUser]
-  );
-
-  const handleNewGroupMessage = useCallback(
-    ({ message }) => {
-      // If this is the current group, add the message
-      if (selectedGroup && message.group._id === selectedGroup._id) {
-        setMessages((prev) => [...prev, message]);
-      }
-
-      // Update groups list
-      setGroups((prev) => {
-        return prev
-          .map((group) => {
-            if (group._id === message.group._id) {
-              return { ...group, lastMessage: message };
-            }
-            return group;
-          })
-          .sort((a, b) => {
-            const aTime = a.lastMessage?.timestamp || a.createdAt;
-            const bTime = b.lastMessage?.timestamp || b.createdAt;
-            return new Date(bTime) - new Date(aTime);
-          });
-      });
-
-      // Update unread count if not viewing this group
-      if (!selectedGroup || selectedGroup._id !== message.group._id) {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [message.group._id]: (prev[message.group._id] || 0) + 1,
-        }));
-      }
-    },
-    [selectedGroup]
-  );
-
-  const handleRefreshChat = useCallback(
-    async ({ type, conversationId }) => {
-      try {
-        const token = localStorage.getItem("token");
-
-        if (type === "private") {
-          if (selectedUser?._id === conversationId) {
-            const response = await axios.get(
-              `http://localhost:5001/api/chat/messages/${conversationId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setMessages(response.data);
-          }
-          fetchConversationPartners();
-        } else if (type === "group") {
-          if (selectedGroup?._id === conversationId) {
-            const response = await axios.get(
-              `http://localhost:5001/api/group/${conversationId}/messages`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setMessages(response.data);
-          }
-          fetchGroups();
-        }
-      } catch (err) {
-        console.error("Error refreshing chat:", err);
-      }
-    },
-    [selectedUser, selectedGroup]
-  );
-
-  const handleNewMessage = useCallback(
-    (data) => {
-      const { message, conversationUpdate } = data;
-
-      // Update messages if in the active chat
-      if (
-        (message.type === "private" &&
-          selectedUser?._id ===
-            (message.sender._id === currentUserId
-              ? message.recipient._id
-              : message.sender._id)) ||
-        (message.type === "group" && selectedGroup?._id === message.group?._id)
-      ) {
-        setMessages((prev) => {
-          // Prevent duplicates
-          if (!prev.some((m) => m._id === message._id)) {
-            return [...prev, message];
-          }
-          return prev;
-        });
-      }
-
-      // Update conversation list
-      if (conversationUpdate) {
-        if (conversationUpdate.partnerId) {
-          setConversationPartners((prev) => {
-            const existingIndex = prev.findIndex(
-              (p) => p._id === conversationUpdate.partnerId
-            );
-
-            if (existingIndex >= 0) {
-              const updated = [...prev];
-              updated[existingIndex] = {
-                ...updated[existingIndex],
-                lastMessage: conversationUpdate.lastMessage,
-              };
-              return updated.sort((a, b) => {
-                const aTime = a.lastMessage?.timestamp || a.createdAt;
-                const bTime = b.lastMessage?.timestamp || b.createdAt;
-                return new Date(bTime) - new Date(aTime);
-              });
-            } else {
-              const newPartner = {
-                _id: conversationUpdate.partnerId,
-                username:
-                  message.sender._id === currentUserId
-                    ? message.recipient.username
-                    : message.sender.username,
-                profileImage:
-                  message.sender._id === currentUserId
-                    ? message.recipient.profileImage
-                    : message.sender.profileImage,
-                lastMessage: conversationUpdate.lastMessage,
-              };
-              return [newPartner, ...prev].sort((a, b) => {
-                const aTime = a.lastMessage?.timestamp || a.createdAt;
-                const bTime = b.lastMessage?.timestamp || b.createdAt;
-                return new Date(bTime) - new Date(aTime);
-              });
-            }
-          });
-        } else if (conversationUpdate.groupId) {
-          setGroups((prev) => {
-            return prev
-              .map((group) => {
-                if (group._id === conversationUpdate.groupId) {
-                  return {
-                    ...group,
-                    lastMessage: conversationUpdate.lastMessage,
-                  };
-                }
-                return group;
-              })
-              .sort((a, b) => {
-                const aTime = a.lastMessage?.timestamp || a.createdAt;
-                const bTime = b.lastMessage?.timestamp || b.createdAt;
-                return new Date(bTime) - new Date(aTime);
-              });
-          });
-        }
-      }
-
-      // Update unread counts if not in this conversation
-      const conversationId =
-        message.type === "private"
-          ? message.sender._id === currentUserId
-            ? message.recipient._id
-            : message.sender._id
-          : message.group._id;
-
-      const isActiveConversation =
-        (message.type === "private" && selectedUser?._id === conversationId) ||
-        (message.type === "group" && selectedGroup?._id === conversationId);
-
-      if (!isActiveConversation) {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [conversationId]: (prev[conversationId] || 0) + 1,
-        }));
-      }
-    },
-    [currentUserId, selectedUser, selectedGroup]
-  );
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on("new-message", handleNewMessage);
-    socket.on("new-group-message", handleNewMessage);
-    socket.on("online-users-update", ({ onlineUsers }) => {
-      setOnlineUsers(onlineUsers);
-    });
-
-    return () => {
-      socket.off("new-message", handleNewMessage);
-      socket.off("new-group-message", handleNewMessage);
-      socket.off("online-users-update");
-    };
-  }, [socket, handleNewMessage]);
-
-  // combined conversation list useEffect
-  useEffect(() => {
-    const combined = [
-      ...conversationPartners.map((partner) => ({
-        ...partner,
-        type: "private",
-        _id: partner._id,
-        name: partner.username,
-        avatar: partner.profileImage,
-        isOnline: onlineUsers.includes(partner._id),
-        lastMessage: partner.lastMessage,
-        createdAt: partner.lastMessage?.timestamp || new Date(0),
-      })),
-      ...groups.map((group) => ({
-        ...group,
-        type: "group",
-        _id: group._id,
-        name: group.name,
-        avatar: group.image,
-        isOnline: false,
-        lastMessage: group.lastMessage,
-        createdAt:
-          group.lastMessage?.timestamp || group.createdAt || new Date(0),
-      })),
-    ].sort((a, b) => {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-
-    setActiveConversations(combined);
-  }, [conversationPartners, groups, onlineUsers]);
-
-  // Updated message sending flow
-  const sendMessage = async (content) => {
-    if (!socket || !content.trim()) return;
-
-    // 1. First emit via socket for immediate UI update
-    const tempId = Date.now().toString();
-    const optimisticMessage = {
-      _id: tempId,
-      sender: {
-        _id: currentUserId,
-        username: currentUsername,
-        profileImage: currentUserProfileImage,
-      },
-      content,
-      timestamp: new Date().toISOString(),
-      // Include recipient/group based on chat type
-      ...(selectedUser
-        ? {
-            recipient: selectedUser._id,
-            type: "private",
-          }
-        : {
-            group: selectedGroup._id,
-            type: "group",
-          }),
-    };
-
-    // Optimistic UI update
-    setMessages((prev) => [...prev, optimisticMessage]);
-
-    try {
-      // 2. Emit via socket
-      if (selectedUser) {
-        socket.emit("private-message", {
-          tempId,
-          senderId: currentUserId,
-          recipientId: selectedUser._id,
-          content,
-        });
-      } else {
-        socket.emit("group-message", {
-          tempId,
-          groupId: selectedGroup._id,
-          content,
-        });
-      }
-
-      // 3. The backend will handle DB saving after socket emission
-      // and broadcast the confirmed message back
-    } catch (err) {
-      // Rollback optimistic update if socket fails
-      setMessages((prev) => prev.filter((m) => m._id !== tempId));
-      console.error("Message send error:", err);
-    }
-  };
-
-  // Reset unread counts when conversation is selected
-  useEffect(() => {
-    if (selectedUser) {
-      setUnreadCounts((prev) => {
-        const newCounts = { ...prev };
-        delete newCounts[selectedUser._id];
-        return newCounts;
-      });
-    } else if (selectedGroup) {
-      setUnreadCounts((prev) => {
-        const newCounts = { ...prev };
-        delete newCounts[selectedGroup._id];
-        return newCounts;
-      });
-    }
-  }, [selectedUser, selectedGroup]);
+//     // Cleanup function
+//     return () => {
+//       if (socketRef.current) {
+//         socketRef.current.off("connect", onConnect);
+//         socketRef.current.off("refetch", onRefetch);
+//         socketRef.current.disconnect();
+//       }
+//     };
+//   }, [currentUserId, selectedUser]);
 
   // Fetch groups for the current user
+  useEffect(() => {
+    // Connect to socket server
+    socketRef.current = io("http://localhost:5001");
+
+    // Setup event listeners
+    const onConnect = () => {
+      console.log("Connected to socket server");
+    };
+
+    const onRefetch = (data) => {
+      const { messageData } = data;
+      const condition = 
+        currentUserId === messageData.recipient._id && 
+        selectedUser?._id === messageData.sender._id;
+      
+      console.log("Message received:", {
+        currentUserId,
+        selectedUserId: selectedUser?._id,
+        messageRecipientId: messageData.recipient._id,
+        messageSenderId: messageData.sender._id,
+        condition
+      });
+
+      // Only add message if condition is true
+      if (condition) {
+        console.log("Adding message to conversation");
+        setMessages(prev => [...prev, messageData]);
+      }
+    };
+
+    // Add event listeners
+    socketRef.current.on("connect", onConnect);
+    socketRef.current.on("refetch", onRefetch);
+
+    // Cleanup function
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off("connect", onConnect);
+        socketRef.current.off("refetch", onRefetch);
+        socketRef.current.disconnect();
+      }
+    };
+}, [currentUserId, selectedUser]);
   const fetchGroups = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -474,13 +143,14 @@ const Chat = () => {
   };
 
   // Fetch conversation partners with unread counts
-  // Update your fetchConversationPartners function
   const fetchConversationPartners = async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
         "http://localhost:5001/api/chat/conversation-partners",
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       if (response.data && Array.isArray(response.data)) {
@@ -523,7 +193,9 @@ const Chat = () => {
       console.error("Error marking messages as read:", err);
     }
   };
+
   const handleSelectUser = async (user) => {
+    if (!user) return;
     try {
       // Clear previous selections
       setSelectedGroup(null);
@@ -551,23 +223,12 @@ const Chat = () => {
       // Fetch messages
       const response = await axios.get(
         `http://localhost:5001/api/chat/messages/${user._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setMessages(response.data);
 
-      // Socket room management
-      if (socket) {
-        // Leave any group chat first
-        if (selectedGroup) {
-          socket.emit("leave-group-chat", selectedGroup._id);
-        }
-
-        // Join private chat
-        socket.emit("join-private-chat", {
-          userId1: currentUserId,
-          userId2: user._id,
-        });
-      }
       // Mark messages as read
       await markMessagesAsRead(user._id, "private");
     } catch (err) {
@@ -604,28 +265,11 @@ const Chat = () => {
       // Fetch messages
       const response = await axios.get(
         `http://localhost:5001/api/group/${group._id}/messages`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setMessages(response.data);
-
-      // Socket room management
-      if (socket) {
-        // Leave any private chat room first
-        if (selectedUser) {
-          socket.emit("leave-private-chat", {
-            userId1: currentUserId,
-            userId2: selectedUser._id,
-          });
-        }
-
-        // Leave previous group chat room if exists
-        if (selectedGroup) {
-          socket.emit("leave-group-chat", selectedGroup._id);
-        }
-
-        // Join new group chat room
-        socket.emit("join-group-chat", group._id);
-      }
     } catch (err) {
       console.error("Error selecting group:", err);
       setError("Failed to open group chat");
@@ -650,6 +294,12 @@ const Chat = () => {
     fetchUsers();
     fetchGroups();
     fetchConversationPartners();
+
+    // Simulate some online users for UI demonstration
+    setOnlineUsers([
+      // Add some random user IDs here that would be in your users array
+      // This is just for UI demonstration since we removed socket functionality
+    ]);
   }, [currentUserId]);
 
   // Search functionality
@@ -660,8 +310,8 @@ const Chat = () => {
     } else {
       const filtered = users.filter(
         (user) =>
-          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase())
+          user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setSearchResults(filtered);
       setShowSearchResults(filtered.length > 0);
@@ -673,28 +323,36 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Join appropriate rooms when user or group is selected
+  // combined conversation list useEffect
   useEffect(() => {
-    if (!socket) return;
+    const combined = [
+      ...conversationPartners.map((partner) => ({
+        ...partner,
+        type: "private",
+        _id: partner._id,
+        name: partner.username,
+        avatar: partner.profileImage,
+        isOnline: onlineUsers.includes(partner._id),
+        lastMessage: partner.lastMessage,
+        createdAt: partner.lastMessage?.timestamp || new Date(0),
+      })),
+      ...groups.map((group) => ({
+        ...group,
+        type: "group",
+        _id: group._id,
+        name: group.name,
+        avatar: group.image,
+        isOnline: false,
+        lastMessage: group.lastMessage,
+        createdAt:
+          group.lastMessage?.timestamp || group.createdAt || new Date(0),
+      })),
+    ].sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
-    if (selectedUser) {
-      socket.emit("join-private-chat", {
-        userId1: currentUserId,
-        userId2: selectedUser._id,
-      });
-      if (selectedGroup) {
-        socket.emit("leave-group-chat", selectedGroup._id);
-      }
-    } else if (selectedGroup) {
-      socket.emit("join-group-chat", selectedGroup._id);
-      if (selectedUser) {
-        socket.emit("leave-private-chat", {
-          userId1: currentUserId,
-          userId2: selectedUser._id,
-        });
-      }
-    }
-  }, [socket, selectedUser, selectedGroup, currentUserId]);
+    setActiveConversations(combined);
+  }, [conversationPartners, groups, onlineUsers]);
 
   // Group functions
   const handleCreateGroup = async () => {
@@ -737,7 +395,9 @@ const Chat = () => {
       const token = localStorage.getItem("token");
       const response = await axios.get(
         `http://localhost:5001/api/group/${selectedGroup._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setSelectedGroup(response.data);
       setShowGroupMembers(true);
@@ -771,7 +431,7 @@ const Chat = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedUser || !socket) return;
+    if (!newMessage.trim()) return;
 
     const tempId = Date.now().toString();
     const optimisticMessage = {
@@ -788,23 +448,6 @@ const Chat = () => {
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
-
-    // Update conversation partners immediately
-    setConversationPartners((prev) => {
-      return prev
-        .map((partner) => {
-          if (partner._id === selectedUser._id) {
-            return { ...partner, lastMessage: optimisticMessage };
-          }
-          return partner;
-        })
-        .sort((a, b) => {
-          const aTime = a.lastMessage?.timestamp || a.createdAt;
-          const bTime = b.lastMessage?.timestamp || b.createdAt;
-          return new Date(bTime) - new Date(aTime);
-        });
-    });
-
     setNewMessage("");
 
     try {
@@ -823,8 +466,9 @@ const Chat = () => {
         ...prev.filter((m) => m._id !== tempId),
         response.data,
       ]);
+      socketRef.current.emit("private-message", response.data);
 
-      // Update with the real message from server
+      // Update conversation partners
       setConversationPartners((prev) => {
         return prev
           .map((partner) => {
@@ -839,10 +483,6 @@ const Chat = () => {
             return new Date(bTime) - new Date(aTime);
           });
       });
-
-      if (socket) {
-        socket.emit("private-message", response.data);
-      }
     } catch (err) {
       console.error("Error sending message:", err);
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -852,7 +492,7 @@ const Chat = () => {
 
   const handleSendGroupMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedGroup || !socket) return;
+    if (!newMessage.trim() || !selectedGroup) return;
 
     const groupId = selectedGroup._id;
     if (!groupId) return;
@@ -875,23 +515,6 @@ const Chat = () => {
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
-
-    // Update groups immediately
-    setGroups((prev) => {
-      return prev
-        .map((group) => {
-          if (group._id === groupId) {
-            return { ...group, lastMessage: optimisticMessage };
-          }
-          return group;
-        })
-        .sort((a, b) => {
-          const aTime = a.lastMessage?.timestamp || a.createdAt;
-          const bTime = b.lastMessage?.timestamp || b.createdAt;
-          return new Date(bTime) - new Date(aTime);
-        });
-    });
-
     setNewMessage("");
 
     try {
@@ -911,7 +534,7 @@ const Chat = () => {
         response.data,
       ]);
 
-      // Update with the real message from server
+      // Update groups
       setGroups((prev) => {
         return prev
           .map((group) => {
@@ -926,13 +549,6 @@ const Chat = () => {
             return new Date(bTime) - new Date(aTime);
           });
       });
-
-      if (socket) {
-        socket.emit("group-message", {
-          groupId: groupId,
-          message: response.data,
-        });
-      }
     } catch (err) {
       console.error("Error sending group message:", err);
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -982,13 +598,16 @@ const Chat = () => {
             <div className="search-results-dropdown">
               {searchResults.map((user) => (
                 <div
-                key={user._id}
+                  key={user._id}
                   className="search-result-item"
                   onClick={() => handleSelectUser(user)}
                 >
                   <div className="user-avatar">
                     {user.profileImage ? (
-                      <img src={user.profileImage} alt={user.username} />
+                      <img
+                        src={user.profileImage || "/placeholder.svg"}
+                        alt={user.username}
+                      />
                     ) : (
                       <FontAwesomeIcon icon={faUser} />
                     )}
@@ -1035,7 +654,7 @@ const Chat = () => {
                 {conversation.type === "private" ? (
                   conversation.profileImage ? (
                     <img
-                      src={conversation.profileImage}
+                      src={conversation.profileImage || "/placeholder.svg"}
                       alt={conversation.username}
                     />
                   ) : (
@@ -1063,7 +682,7 @@ const Chat = () => {
                 {conversation.lastMessage && (
                   <div className="message-preview-container">
                     <p className="message-preview">
-                      {conversation.lastMessage.sender._id === currentUserId
+                      {conversation.lastMessage.sender?._id === currentUserId
                         ? `You: ${conversation.lastMessage.content.substring(
                             0,
                             25
@@ -1071,7 +690,7 @@ const Chat = () => {
                         : conversation.type === "private"
                         ? conversation.lastMessage.content.substring(0, 25)
                         : `${
-                            conversation.lastMessage.sender.username
+                            conversation.lastMessage.sender?.username
                           }: ${conversation.lastMessage.content.substring(
                             0,
                             25
@@ -1101,7 +720,7 @@ const Chat = () => {
                 <div className="partner-avatar">
                   {selectedUser.profileImage ? (
                     <img
-                      src={selectedUser.profileImage}
+                      src={selectedUser.profileImage || "/placeholder.svg"}
                       alt={selectedUser.username}
                     />
                   ) : (
@@ -1113,31 +732,22 @@ const Chat = () => {
             </div>
 
             <div className="chat-messages">
-              {messages.length > 0 ? (
-                messages.map((message) => {
-                  const isSent = message.sender._id === currentUserId;
-                  return (
-                    <div
-                      key={message._id || message.tempId} // Add unique key here
-                      className={`message ${isSent ? "sent" : "received"}`}
-                    >
-                      <div className="message-content">
-                        <p>{message.content}</p>
-                        <span className="message-time">
-                          {formatTime(message.timestamp)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="no-messages">
-                  No messages yet. Start the conversation!
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+  {messages.map((message) => {
+    const isCorrectRecipient = message.recipient._id === currentUserId;
+    const isCorrectSender = message.sender._id === selectedUser?._id;
+    const isOwnMessage = message.sender._id === currentUserId;
 
+    if (isOwnMessage || (isCorrectRecipient && isCorrectSender)) {
+      return (
+        <div key={message._id} className="message">
+          {message.content}
+        </div>
+      );
+    } else {
+      return null; // Or render nothing
+    }
+  })}
+</div>
             <form className="chat-input" onSubmit={handleSendMessage}>
               <input
                 type="text"
@@ -1159,7 +769,7 @@ const Chat = () => {
                 </div>
                 <div className="partner-info">
                   <h3>{selectedGroup.name}</h3>
-                  <p>{selectedGroup.members.length} members</p>
+                  <p>{selectedGroup.members?.length || 0} members</p>
                 </div>
                 <button
                   onClick={handleViewGroupMembers}
@@ -1181,12 +791,12 @@ const Chat = () => {
                   </div>
 
                   <div className="members-list">
-                    {selectedGroup.members.map((member) => (
-                       <div key={member._id} className="member-item">
+                    {selectedGroup.members?.map((member) => (
+                      <div key={member._id} className="member-item">
                         <div className="member-avatar">
                           {member.profileImage ? (
                             <img
-                              src={member.profileImage}
+                              src={member.profileImage || "/placeholder.svg"}
                               alt={member.username}
                             />
                           ) : (
@@ -1195,11 +805,11 @@ const Chat = () => {
                         </div>
                         <div className="member-info">
                           <h4>{member.username}</h4>
-                          {selectedGroup.creator._id === member._id && (
+                          {selectedGroup.creator?._id === member._id && (
                             <span className="creator-badge">Creator</span>
                           )}
                         </div>
-                        {selectedGroup.creator._id === currentUserId &&
+                        {selectedGroup.creator?._id === currentUserId &&
                           member._id !== currentUserId && (
                             <button
                               onClick={() => handleRemoveMember(member._id)}
@@ -1227,7 +837,9 @@ const Chat = () => {
                       <div className="message-sender">
                         {message.sender.profileImage ? (
                           <img
-                            src={message.sender.profileImage}
+                            src={
+                              message.sender.profileImage || "/placeholder.svg"
+                            }
                             alt={message.sender.username}
                           />
                         ) : (
@@ -1317,7 +929,10 @@ const Chat = () => {
                     >
                       <div className="user-avatar">
                         {user.profileImage ? (
-                          <img src={user.profileImage} alt={user.username} />
+                          <img
+                            src={user.profileImage || "/placeholder.svg"}
+                            alt={user.username}
+                          />
                         ) : (
                           <FontAwesomeIcon icon={faUser} />
                         )}
@@ -1338,7 +953,10 @@ const Chat = () => {
                     <div key={user._id} className="selected-member">
                       <div className="user-avatar">
                         {user.profileImage ? (
-                          <img src={user.profileImage} alt={user.username} />
+                          <img
+                            src={user.profileImage || "/placeholder.svg"}
+                            alt={user.username}
+                          />
                         ) : (
                           <FontAwesomeIcon icon={faUser} />
                         )}
